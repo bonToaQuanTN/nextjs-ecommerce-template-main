@@ -1,7 +1,7 @@
 export type Menu = {
-  id: number;
-  title: string;
+  id: string;
+  name: string;      
   path?: string;
-  newTab: boolean;
-  submenu?: Menu[];
+  newTab?: boolean;
+  submenu?: Menu[]; 
 };

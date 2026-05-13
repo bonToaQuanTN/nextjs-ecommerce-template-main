@@ -2,9 +2,16 @@ import React from "react";
 import SingleItem from "./SingleItem";
 import Image from "next/image";
 import Link from "next/link";
-import shopData from "@/components/Shop/shopData";
 
-const BestSeller = () => {
+// 1. SỬA IMPORT: Xóa import 'shopData' cũ, thay bằng hàm fetch mới
+import { getServerSideProducts } from "@/components/Shop/shopData";
+
+// 2. SỬA COMPONENT: Thêm chữ 'async' để có thể dùng 'await'
+const BestSeller = async () => {
+  
+  // 3. GỌI API: Lấy dữ liệu từ Backend (Mặc định lấy trang 1)
+  const products = await getServerSideProducts(1);
+
   return (
     <section className="overflow-hidden">
       <div className="max-w-[1170px] w-full mx-auto px-4 sm:px-8 xl:px-0">
@@ -28,9 +35,19 @@ const BestSeller = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-7.5">
           {/* <!-- Best Sellers item --> */}
-          {shopData.slice(1, 7).map((item, key) => (
+          
+          {/* 4. SỬA LOGIC MAP: 
+              - Đổi 'shopData' thành 'products'
+              - Đổi slice(1, 7) thành slice(0, 6) để lấy 6 sản phẩm đầu tiên từ Backend 
+          */}
+          {products.slice(0, 6).map((item, key) => (
             <SingleItem item={item} key={key} />
           ))}
+          
+          {/* Thêm đoạn này để tránh crash web nếu Backend chưa chạy hoặc bị lỗi */}
+          {products.length === 0 && (
+            <p className="col-span-full text-center text-dark-4 py-10">No products found.</p>
+          )}
         </div>
 
         <div className="text-center mt-12.5">

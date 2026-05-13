@@ -2,9 +2,16 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import ProductItem from "@/components/Common/ProductItem";
-import shopData from "@/components/Shop/shopData";
 
-const NewArrival = () => {
+// DÒNG DÒNG: Phải thay thế dòng import cũ bằng dòng này
+import { getServerSideProducts } from "@/components/Shop/shopData";
+
+// DÒNG DÒNG: Phải thêm chữ async vào đây
+const NewArrival = async () => {
+  
+  // DÒNG DÒNG: Thêm dòng này để lấy data từ Backend
+  const products = await getServerSideProducts(1);
+
   return (
     <section className="overflow-hidden pt-15">
       <div className="max-w-[1170px] w-full mx-auto px-4 sm:px-8 xl:px-0">
@@ -48,9 +55,15 @@ const NewArrival = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-7.5 gap-y-9">
           {/* <!-- New Arrivals item --> */}
-          {shopData.map((item, key) => (
+          
+          {/* DÒNG DÒNG: Đổi shopData thành products */}
+          {products.map((item, key) => (
             <ProductItem item={item} key={key} />
           ))}
+
+          {products.length === 0 && (
+            <p className="col-span-full text-center text-dark-4 py-10">No new arrivals found.</p>
+          )}
         </div>
       </div>
     </section>

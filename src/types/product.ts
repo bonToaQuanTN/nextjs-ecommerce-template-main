@@ -1,11 +1,14 @@
-export type Product = {
-  title: string;
+// @/types/product.ts
+export interface ProductImage {
+  thumbnails: string[];
+  previews: string[];
+}
+
+export interface Product {
+  id: string;
+  title: string; 
   reviews: number;
   price: number;
-  discountedPrice: number;
-  id: number;
-  imgs?: {
-    thumbnails: string[];
-    previews: string[];
-  };
-};
+  discountedPrice: number | null;
+  imgs: ProductImage; 
+}

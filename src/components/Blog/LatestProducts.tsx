@@ -3,6 +3,8 @@ import Image from "next/image";
 import Link from "next/link";
 
 const LatestProducts = ({ products }) => {
+  const safeProducts = Array.isArray(products) ? products : [];
+
   return (
     <div className="shadow-1 bg-white rounded-xl mt-7.5">
       <div className="px-4 sm:px-6 py-4.5 border-b border-gray-3">
@@ -11,21 +13,30 @@ const LatestProducts = ({ products }) => {
 
       <div className="p-4 sm:p-6">
         <div className="flex flex-col gap-6">
-          {/* <!-- product item --> */}
-          {products.slice(0, 3).map((product, key) => (
-            <div className="flex items-center gap-6" key={key}>
-              <div className="flex items-center justify-center rounded-[10px] bg-gray-3 max-w-[90px] w-full h-22.5">
-                <Image src={product.imgs?.thumbnails?.[0]} alt="product" width={74} height={74} />
-              </div>
+          {safeProducts.length > 0 ? (
+            safeProducts.slice(0, 3).map((product, key) => (
+              <div className="flex items-center gap-6" key={key}>
+                <div className="flex items-center justify-center rounded-[10px] bg-gray-3 max-w-[90px] w-full h-22.5">
+                  <Image 
+                    src={product.imgs?.thumbnails?.[0] || "/images/placeholder.png"} 
+                    alt={product.title || "product"} 
+                    width={74} 
+                    height={74} 
+                  />
+                </div>
 
-              <div>
-                <h3 className="font-medium text-dark mb-1 ease-out duration-200 hover:text-blue">
-                  <Link href="/shop-details"> {product.title} </Link>
-                </h3>
-                <p className="text-custom-sm">Price: ${product.price}</p>
+                <div>
+                  <h3 className="font-medium text-dark mb-1 ease-out duration-200 hover:text-blue">
+                    <Link href="/shop-details"> {product.title} </Link>
+                  </h3>
+                  {/* Thêm ?. để tránh crash nếu price là undefined */}
+                  <p className="text-custom-sm">Price: ${product.price?.toFixed(2)}</p>
+                </div>
               </div>
-            </div>
-          ))}
+            ))
+          ) : (
+            <p className="text-gray-4">No products available</p>
+          )}
         </div>
       </div>
     </div>
