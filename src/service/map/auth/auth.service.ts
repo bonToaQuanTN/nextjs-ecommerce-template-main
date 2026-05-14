@@ -1,4 +1,7 @@
 import axiosInstance from '@/service/api-client';
+import {mapFormToCreateUserDto} from '@/service/map/utils/mapper/auth.mapper';
+import { RegisterFormValues } from '@/service/map/interfaces/auth.interface';
+
 
 export const login = async (email: string, password: string) => {
   const res = await axiosInstance.post('/user/login', { email, password });
@@ -16,5 +19,18 @@ export const logout = async () => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     window.location.href = '/login';
+  }
+};
+
+export const registerUser = async (formData: RegisterFormValues) => {
+  try {
+    const payload = mapFormToCreateUserDto(formData);
+    const response = await axiosInstance.post('/user', payload);
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+
+    return response.data; 
+  } catch (error) {
+    throw error;
   }
 };

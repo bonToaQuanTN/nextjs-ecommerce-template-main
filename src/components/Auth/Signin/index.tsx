@@ -24,7 +24,6 @@ const Signin = () => {
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
-
     try {
       setIsLoading(true);
       const response = await axiosInstance.post<LoginResponse>('/user/login', { 
@@ -33,6 +32,7 @@ const Signin = () => {
       });
       localStorage.setItem('access_token', response.data.access_token);
       localStorage.setItem('refresh_token', response.data.refresh_token);
+      setIsLoading(false);
       router.push("/"); 
 
     } catch (error: any) {
@@ -40,7 +40,7 @@ const Signin = () => {
       if (error.response && error.response.data && error.response.data.message) {
         setError(error.response.data.message);
       } else {
-        setError("Đã có lỗi xảy ra. Vui lòng thử lại!");
+        setError("An error occurred. Please try again!");
       }
     }
   };

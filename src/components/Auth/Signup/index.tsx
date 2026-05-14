@@ -3,52 +3,45 @@ import Breadcrumb from "@/components/Common/Breadcrumb";
 import Link from "next/link";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import axiosInstance from "@/service/api-client";
-
-interface SignupData {
-  firstName: string;
-  lastName: string;
-  email: string;
-  password: string;
-  phone: string;
-  designation: string;
-}
+import { registerUser } from "@/service/map/auth/auth.service";
+import { RegisterFormValues } from "@/service/map/interfaces/auth.interface";
 
 const Signup = () => {
   const router = useRouter();
-  const [formData, setFormData] = useState<SignupData>({
-    firstName: '',
-    lastName: '', 
-    email: '',
-    password: '',
-    phone: '',
-    designation: ''
+  const [form, setForm] = useState<RegisterFormValues>({
+    fullName: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    phone: "",
   });
-
   const [isLoading, setIsLoading] = useState(false); 
   const [error, setError] = useState(''); 
 
-  
   const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault(); 
     setError("");
+    if (form.password !== form.confirmPassword) {
+      setError("Mật khẩu không khớp!");
+      return;
+    }
+    if (form.password.length < 6) {
+      setError("Mật khẩu phải có ít nhất 6 ký tự");
+      return;
+    }
     try {
       setIsLoading(true);
-      const response = await axiosInstance.post('/user', formData);
+      await registerUser(form);
       router.push('/signin');
       
     } catch (error: any) {
-  setIsLoading(false);
-  const message = error.response?.data?.message;
-  
-  if (Array.isArray(message)) {
-    setError(message[0]);
-  } else if (typeof message === 'string') {
-    setError(message);
-  } else {
-    setError('Có lỗi xảy ra. Vui lòng thử lại!');
-  }
-}
+      setIsLoading(false);
+      if (error.response && error.response.data && error.response.data.message) {
+        setError(error.response.data.message);
+      } else {
+        setError('Có lỗi xảy ra. Vui lòng thử lại!');
+      }
+    }
   };
 
   return (
@@ -63,39 +56,24 @@ const Signup = () => {
               </h2>
               <p>Enter your detail below</p>
               {error && (
-                <div className="bg-red-50 border-l-4 border-red-500 px-4 py-3 mb-6 rounded-lg text-red-500">
-                  <p>{error}</p>
+                <div className="bg-red-50 border-l-4 border-red-500 px-4 py-3 mb-6 mt-6 rounded-lg text-red-500 text-left">
+                  <p className="text-sm">{error}</p>
                 </div>
               )}
+
               <form onSubmit={handleSignup}>
                 <div className="mb-5">
-                  <label htmlFor="lastName" className="block mb-2.5">
-                    Last Name <span className="text-red">*</span>
+                  <label htmlFor="fullName" className="block mb-2.5">
+                    Full Name <span className="text-red">*</span>
                   </label>
                   <input
                     type="text"
-                    id="lastName"
-                    name="lastName"
-                    placeholder="Enter your last name"
+                    id="fullName"
+                    name="fullName"
+                    placeholder="full name"
                     required
-                    value={formData.lastName}
-                    onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                    className="rounded-lg border border-gray-3 bg-gray-1 placeholder:text-dark-5 w-full py-3 px-5 outline-none duration-200 focus:border-transparent focus:shadow-input focus:ring-2 focus:ring-blue/20"
-                  />
-                </div>
-
-                <div className="mb-5">
-                  <label htmlFor="firstName" className="block mb-2.5">
-                    First Name <span className="text-red">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    id="firstName"
-                    name="firstName"
-                    placeholder="Enter your first name"
-                    required
-                    value={formData.firstName}
-                    onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                    value={form.fullName}
+                    onChange={(e) => setForm({ ...form, fullName: e.target.value })}
                     className="rounded-lg border border-gray-3 bg-gray-1 placeholder:text-dark-5 w-full py-3 px-5 outline-none duration-200 focus:border-transparent focus:shadow-input focus:ring-2 focus:ring-blue/20"
                   />
                 </div>
@@ -110,8 +88,24 @@ const Signup = () => {
                     name="email"
                     placeholder="Enter your email address"
                     required
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value.toLowerCase().trim() })}
+                    value={form.email}
+                    onChange={(e) => setForm({ ...form, email: e.target.value.toLowerCase().trim() })}
+                    className="rounded-lg border border-gray-3 bg-gray-1 placeholder:text-dark-5 w-full py-3 px-5 outline-none duration-200 focus:border-transparent focus:shadow-input focus:ring-2 focus:ring-blue/20"
+                  />
+                </div>
+
+                <div className="mb-5">
+                  <label htmlFor="phone" className="block mb-2.5">
+                    Phone <span className="text-red">*</span>
+                  </label>
+                  <input
+                    type="tel"
+                    id="phone"
+                    name="phone"
+                    placeholder="Enter your phone number"
+                    required
+                    value={form.phone}
+                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
                     className="rounded-lg border border-gray-3 bg-gray-1 placeholder:text-dark-5 w-full py-3 px-5 outline-none duration-200 focus:border-transparent focus:shadow-input focus:ring-2 focus:ring-blue/20"
                   />
                 </div>
@@ -124,47 +118,34 @@ const Signup = () => {
                     type="password"
                     id="password"
                     name="password"
-                    placeholder="Enter your password"
+                    placeholder="Enter your password (min 6 characters)"
                     required
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    value={form.password}
+                    onChange={(e) => setForm({ ...form, password: e.target.value })}
                     autoComplete="new-password"
                     className="rounded-lg border border-gray-3 bg-gray-1 placeholder:text-dark-5 w-full py-3 px-5 outline-none duration-200 focus:border-transparent focus:shadow-input focus:ring-2 focus:ring-blue/20"
                   />
                 </div>
                 <div className="mb-5">
-                  <label htmlFor="phone" className="block mb-2.5">
-                    Phone <span className="text-red">*</span>
+                  <label htmlFor="confirmPassword" className="block mb-2.5">
+                    Confirm Password <span className="text-red">*</span>
                   </label>
                   <input
-                    type="text"
-                    id="phone"
-                    name="phone"
-                    placeholder="Enter your phone number"
+                    type="password"
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    placeholder="Nhập lại mật khẩu"
                     required
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    value={form.confirmPassword}
+                    onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
+                    autoComplete="new-password"
                     className="rounded-lg border border-gray-3 bg-gray-1 placeholder:text-dark-5 w-full py-3 px-5 outline-none duration-200 focus:border-transparent focus:shadow-input focus:ring-2 focus:ring-blue/20"
                   />
                 </div>
-
-                <div className="mb-5">
-                  <label htmlFor="designation" className="block mb-2.5">
-                    Designation <span className="text-red">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    id="designation"
-                    name="designation"
-                    placeholder="E.g. Software Engineer"
-                    required
-                    value={formData.designation}
-                    onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
-                    className="rounded-lg border border-gray-3 bg-gray-1 placeholder:text-dark-5 w-full py-3 px-5 outline-none duration-200 focus:border-transparent focus:shadow-input focus:ring-2 focus:ring-blue/20"
-                  />
-                </div>
+              
                 <button
                   type="submit"
+                  disabled={isLoading}
                   className="w-full flex justify-center font-medium text-white bg-dark py-3 px-6 rounded-lg ease-out duration-200 hover:bg-blue mt-7.5 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isLoading ? "Creating Account..." : "Create Account"}
@@ -172,9 +153,7 @@ const Signup = () => {
 
                 <p className="text-center mt-6">
                   Already have an account?
-                  <Link href="/signin" className="text-dark ease-out duration-200 hover:text-blue pl-2">
-                    Sign in Now
-                  </Link>
+                  <Link href="/signin" className="text-dark ease-out duration-200 hover:text-blue pl-2">Sign in Now</Link>
                 </p>
               </form>
             </div>

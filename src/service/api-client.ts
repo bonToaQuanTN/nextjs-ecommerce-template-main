@@ -24,6 +24,7 @@ axiosInstance.interceptors.request.use(
 let isRefreshing = false;
 let failedQueue: any[] = [];
 
+
 const processQueue = (error: any, token: string | null = null) => {
   failedQueue.forEach((prom) => {
     if (error) {
@@ -55,7 +56,7 @@ axiosInstance.interceptors.response.use(
 
       const refreshToken = localStorage.getItem('refresh_token');
       if (!refreshToken) {
-        window.location.href = '/login';
+        window.location.href = '/signin';
         return Promise.reject(error);
       }
 
@@ -76,7 +77,7 @@ axiosInstance.interceptors.response.use(
         processQueue(refreshError, null);
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
-        window.location.href = '/login';
+        window.location.href = '/signin';
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

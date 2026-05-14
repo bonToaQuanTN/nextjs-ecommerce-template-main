@@ -23,7 +23,7 @@ export const getServerSideProducts = async (page: number = 1): Promise<Product[]
     const res = await fetch(`${API_URL}/products?page=${page}`, { cache: 'no-store' });
     if (!res.ok) return [];
     const json = await res.json();
-    return json.data.map(mapBackendToProduct); // Map mảng data từ Backend
+    return json.data.map(mapBackendToProduct); 
   } catch (error) {
     console.error("Failed to fetch products for server component:", error);
     return [];

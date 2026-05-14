@@ -29,10 +29,6 @@ const SingleGridItem = ({ item }: { item: Product }) => {
   return (
     <div className="group">
       <div className="relative overflow-hidden flex items-center justify-center rounded-lg bg-white shadow-1 min-h-[270px] mb-4">
-        {/* 
-          1. SỬA ẢNH: Thêm dấu '?' để chống crash khi Backend chưa có ảnh. 
-          Thêm ảnh dự phòng (placeholder) ở cuối. 
-        */}
         <Image 
           src={item.imgs?.previews?.[0] || "/images/placeholder.png"} 
           alt={item.title || "Product"} 
