@@ -3,25 +3,25 @@ import { Menu } from "@/types/Menu";
 export const menuData: Menu[] = [
   {
     id: 1,
-    title: "Popular",
+    title: "Phổ biến",
     newTab: false,
     path: "/",
   },
   {
     id: 2,
-    title: "Shop",
+    title: "Cửa hàng",
     newTab: false,
     path: "/shop-with-sidebar",
   },
   {
     id: 3,
-    title: "Contact",
+    title: "Liên Hệ",
     newTab: false,
     path: "/contact",
   },
   {
     id: 6,
-    title: "pages",
+    title: "Trang",
     newTab: false,
     path: "/",
     submenu: [
@@ -39,13 +39,13 @@ export const menuData: Menu[] = [
       },
       {
         id: 64,
-        title: "Checkout",
+        title: "Thanh Toán",
         newTab: false,
         path: "/checkout",
       },
       {
         id: 65,
-        title: "Cart",
+        title: "Giỏ hàng",
         newTab: false,
         path: "/cart",
       },
@@ -57,25 +57,25 @@ export const menuData: Menu[] = [
       },
       {
         id: 67,
-        title: "Sign in",
+        title: "Đăng Nhập",
         newTab: false,
         path: "/signin",
       },
       {
         id: 68,
-        title: "Sign up",
+        title: "Đăng ký",
         newTab: false,
         path: "/signup",
       },
       {
         id: 69,
-        title: "My Account",
+        title: "Tài khoản",
         newTab: false,
         path: "/my-account",
       },
       {
         id: 70,
-        title: "Contact",
+        title: "Liên hệ",
         newTab: false,
         path: "/contact",
       },

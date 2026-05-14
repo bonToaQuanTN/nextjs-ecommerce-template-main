@@ -15,12 +15,10 @@ import PreviewSliderModal from "@/components/Common/PreviewSlider";
 
 import ScrollToTop from "@/components/Common/ScrollToTop";
 import PreLoader from "@/components/Common/PreLoader";
+import AuthWrapper from "@/components/Auth/Signin/AuthWrapper";
+import { setUser } from "@/redux/features/auth-slice";
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children}: {  children: React.ReactNode;}) {
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
@@ -33,24 +31,21 @@ export default function RootLayout({
         {loading ? (
           <PreLoader />
         ) : (
-          <>
-            <ReduxProvider>
+          <ReduxProvider> 
+            <AuthWrapper>
               <CartModalProvider>
                 <ModalProvider>
                   <PreviewSliderProvider>
                     <Header />
                     {children}
-
                     <QuickViewModal />
                     <CartSidebarModal />
                     <PreviewSliderModal />
                   </PreviewSliderProvider>
                 </ModalProvider>
               </CartModalProvider>
-            </ReduxProvider>
-            <ScrollToTop />
-            <Footer />
-          </>
+            </AuthWrapper>
+          </ReduxProvider>
         )}
       </body>
     </html>

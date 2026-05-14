@@ -1,5 +1,5 @@
 export interface Category {
-  id: string; // SỬA: Đổi từ number sang string (vì Backend trả về UUID)
+  id: string; 
   title: string;
   img: string;
 }
