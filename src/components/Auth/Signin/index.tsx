@@ -29,10 +29,11 @@ const Signin = () => {
       const response = await axiosInstance.post<LoginResponse>('/user/login', { 
         email, 
         password 
-      });
+      }); 
       localStorage.setItem('access_token', response.data.access_token);
       localStorage.setItem('refresh_token', response.data.refresh_token);
       setIsLoading(false);
+      window.location.href = '/';
       router.push("/"); 
 
     } catch (error: any) {

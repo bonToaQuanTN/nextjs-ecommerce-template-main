@@ -1,8 +1,8 @@
+"use client";
 import React, { useEffect } from "react";
 
-const AddressModal = ({ isOpen, closeModal }) => {
+const AddressModal = ({ isOpen, closeModal, initialData, onSave }) => {
   useEffect(() => {
-    // closing modal while clicking outside
     function handleClickOutside(event) {
       if (!event.target.closest(".modal-content")) {
         closeModal();
@@ -16,18 +16,18 @@ const AddressModal = ({ isOpen, closeModal }) => {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [isOpen, closeModal]);
+  }, [isOpen, closeModal, initialData, onSave]);
 
   return (
     <div
-      className={`fixed top-0 left-0 overflow-y-auto no-scrollbar w-full h-screen sm:py-20 xl:py-25 2xl:py-[230px] bg-dark/70 sm:px-8 px-4 py-5 ${isOpen ? "block z-99999" : "hidden"
-        }`}
+      className={`fixed top-0 left-0 overflow-y-auto no-scrollbar w-full h-screen sm:py-20 xl:py-25 2xl:py-[230px] bg-dark/70 sm:px-8 px-4 py-5 ${
+        isOpen ? "block z-99999" : "hidden"
+      }`}
     >
-      <div className="flex items-center justify-center ">
-        <div
-          x-show="addressModal"
-          className="w-full max-w-[1100px] rounded-xl shadow-3 bg-white p-7.5 relative modal-content"
-        >
+      <div className="flex items-center justify-center">
+        <div className="w-full max-w-[1100px] rounded-xl shadow-3 bg-white p-7.5 relative modal-content">
+          
+          {/* NÚT CLOSE - Đã thêm thẻ đóng </button> */}
           <button
             onClick={closeModal}
             aria-label="button for close modal"
@@ -44,37 +44,34 @@ const AddressModal = ({ isOpen, closeModal }) => {
               <path
                 fillRule="evenodd"
                 clipRule="evenodd"
-                d="M14.3108 13L19.2291 8.08167C19.5866 7.72417 19.5866 7.12833 19.2291 6.77083C19.0543 6.59895 18.8189 6.50262 18.5737 6.50262C18.3285 6.50262 18.0932 6.59895 17.9183 6.77083L13 11.6892L8.08164 6.77083C7.90679 6.59895 7.67142 6.50262 7.42623 6.50262C7.18104 6.50262 6.94566 6.59895 6.77081 6.77083C6.41331 7.12833 6.41331 7.72417 6.77081 8.08167L11.6891 13L6.77081 17.9183C6.41331 18.2758 6.41331 18.8717 6.77081 19.2292C7.12831 19.5867 7.72414 19.5867 8.08164 19.2292L13 14.3108L17.9183 19.2292C18.2758 19.5867 18.8716 19.5867 19.2291 19.2292C19.5866 18.8717 19.5866 18.2758 19.2291 17.9183L14.3108 13Z"
+                d="M14.3108 13L19.2291 8.08167C19.5866 7.72417 19.5866 7.12833 19.2291 6.77083C19.0543 6.59895 18.8189 6.50262 18.5737 6.50262C18.3285 6.50262 18.0932 6.59895 17.9183 6.77083L13 11.6892L8.08164 6.77083C7.90679 6.59895 7.67142 6.50262 7.42623 6.50262C7.18104 6.50262 6.94566 6.59895 6.77081 6.77083C6.41331 7.12833 6.41331 7.72417 6.77081 8.08167L11.6891 13L6.77081 17.9183C6.89566 18.2758 7.13103 18.3821 7.37622 18.3821C7.6214 18.3821 7.95858 18.2758 8.22917 17.9183L14.3108 13Z"
                 fill=""
               />
             </svg>
           </button>
+          {/* KẾT THỤC CLOSE */}
 
-          <div>
-            <form>
+          {/* FORM CẬP NHẬT ĐỊA CHỈ (Đã xóa form trùng lặp) */}
+          <div className="mt-10"> {/* Thêm margin-top để không bị đè bởi nút close */}
+            <form onSubmit={(e) => { e.preventDefault(); onSave(); }}>
               <div className="flex flex-col lg:flex-row gap-5 sm:gap-8 mb-5">
                 <div className="w-full">
-                  <label htmlFor="name" className="block mb-2.5">
-                    Name
-                  </label>
-
+                  <label htmlFor="name" className="block mb-2.5">Name</label>
                   <input
                     type="text"
                     name="name"
-                    value="James Septimus"
+                    id="name"
+                    defaultValue={initialData?.name || `${initialData?.firstName || ''} ${initialData?.lastName || ''}`}
                     className="rounded-md border border-gray-3 bg-gray-1 placeholder:text-dark-5 w-full py-2.5 px-5 outline-none duration-200 focus:border-transparent focus:shadow-input focus:ring-2 focus:ring-blue/20"
                   />
                 </div>
-
                 <div className="w-full">
-                  <label htmlFor="email" className="block mb-2.5">
-                    Email
-                  </label>
-
+                  <label htmlFor="email" className="block mb-2.5">Email</label>
                   <input
                     type="email"
                     name="email"
-                    value="jamse@example.com"
+                    id="email"
+                    defaultValue={initialData?.email || ''}
                     className="rounded-md border border-gray-3 bg-gray-1 placeholder:text-dark-5 w-full py-2.5 px-5 outline-none duration-200 focus:border-transparent focus:shadow-input focus:ring-2 focus:ring-blue/20"
                   />
                 </div>
@@ -82,27 +79,22 @@ const AddressModal = ({ isOpen, closeModal }) => {
 
               <div className="flex flex-col lg:flex-row gap-5 sm:gap-8 mb-5">
                 <div className="w-full">
-                  <label htmlFor="phone" className="block mb-2.5">
-                    Phone
-                  </label>
-
+                  <label htmlFor="phone" className="block mb-2.5">Phone</label>
                   <input
                     type="text"
                     name="phone"
-                    value="1234 567890"
+                    id="phone"
+                    defaultValue={initialData?.phone || ''}
                     className="rounded-md border border-gray-3 bg-gray-1 placeholder:text-dark-5 w-full py-2.5 px-5 outline-none duration-200 focus:border-transparent focus:shadow-input focus:ring-2 focus:ring-blue/20"
                   />
                 </div>
-
                 <div className="w-full">
-                  <label htmlFor="address" className="block mb-2.5">
-                    Address
-                  </label>
-
+                  <label htmlFor="address" className="block mb-2.5">Address</label>
                   <input
                     type="text"
                     name="address"
-                    value="7398 Smoke Ranch RoadLas Vegas, Nevada 89128"
+                    id="address"
+                    defaultValue={initialData?.address || ''}
                     className="rounded-md border border-gray-3 bg-gray-1 placeholder:text-dark-5 w-full py-2.5 px-5 outline-none duration-200 focus:border-transparent focus:shadow-input focus:ring-2 focus:ring-blue/20"
                   />
                 </div>
@@ -116,6 +108,7 @@ const AddressModal = ({ isOpen, closeModal }) => {
               </button>
             </form>
           </div>
+
         </div>
       </div>
     </div>
