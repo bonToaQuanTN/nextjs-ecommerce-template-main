@@ -12,7 +12,7 @@ function mapBackendToProduct(item: any): Product {
     title: item.name,
     reviews: 0,
     price: parseFloat(item.price),
-    discountedPrice: null,
+    discountedPrice: parseFloat(item.price) - (item.discount ? parseFloat(item.discount) : 0),
     imgs: {
       thumbnails: thumbnailImages,
       previews: previewImages.length > 0 ? previewImages : thumbnailImages
@@ -37,7 +37,6 @@ export const getClientSideCategories = async () => {
       if (foundArray) categoriesArray = foundArray;
     }
 
-    // Map dữ liệu một cách an toàn
     return categoriesArray.map((cat: any) => ({ 
       id: cat.id, 
       name: cat.name 

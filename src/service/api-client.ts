@@ -1,16 +1,17 @@
 import axios, { AxiosInstance, InternalAxiosRequestConfig, AxiosError } from 'axios';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'; 
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-
-const axiosInstance: AxiosInstance = axios.create({
+const apiClient: AxiosInstance = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
 });
-axiosInstance.interceptors.request.use(
+
+apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     if (typeof window !== 'undefined') {
+      // SỬA 2: ĐỒNG BỘ KEY. Dùng 'access_token' cho chuẩn với logic login của bạn
       const accessToken = localStorage.getItem('access_token');
       if (accessToken) {
         config.headers.Authorization = `Bearer ${accessToken}`;
@@ -24,7 +25,6 @@ axiosInstance.interceptors.request.use(
 let isRefreshing = false;
 let failedQueue: any[] = [];
 
-
 const processQueue = (error: any, token: string | null = null) => {
   failedQueue.forEach((prom) => {
     if (error) {
@@ -36,24 +36,21 @@ const processQueue = (error: any, token: string | null = null) => {
   failedQueue = [];
 };
 
-axiosInstance.interceptors.response.use(
+apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as any;
-
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         }).then((token) => {
           originalRequest.headers.Authorization = `Bearer ${token}`;
-          return axiosInstance(originalRequest);
+          return apiClient(originalRequest); 
         });
       }
-
       originalRequest._retry = true;
       isRefreshing = true;
-
       const refreshToken = localStorage.getItem('refresh_token');
       if (!refreshToken) {
         window.location.href = '/signin';
@@ -61,18 +58,12 @@ axiosInstance.interceptors.response.use(
       }
 
       try {
-        const res = await axios.post(`${API_URL}/user/refresh`, {
-          refreshToken: refreshToken,
-        });
-
-        const { access_token, refresh_token } = res.data;
-
-        localStorage.setItem('access_token', access_token);
-        localStorage.setItem('refresh_token', refresh_token);
-
         processQueue(null, access_token);
+        
+        // Gọi lại request cũ vừa bị fail
         originalRequest.headers.Authorization = `Bearer ${access_token}`;
-        return axiosInstance(originalRequest);
+        return apiClient(originalRequest); // Dùng apiClient
+        
       } catch (refreshError) {
         processQueue(refreshError, null);
         localStorage.removeItem('access_token');
@@ -87,5 +78,4 @@ axiosInstance.interceptors.response.use(
     return Promise.reject(error);
   }
 );
-
-export default axiosInstance;
+export default apiClient; 

@@ -43,6 +43,9 @@ export const cart = createSlice({
         });
       }
     },
+    setCartItems: (state, action) => {
+      state.items = action.payload;
+    },
     removeItemFromCart: (state, action: PayloadAction<string>) => {
       const itemId = action.payload;
       state.items = state.items.filter((item) => item.id !== itemId);
@@ -72,6 +75,13 @@ export const selectTotalPrice = createSelector([selectCartItems], (items) => {
     return total + item.discountedPrice * item.quantity;
   }, 0);
 });
+
+export const removeItemFromDB = async (cartItemId: string) => {
+  return fetch(`${API_BASE}/cart-items/${cartItemId}`, {
+    method: 'DELETE',
+    headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }
+  });
+};
 
 export const {
   addItemToCart,

@@ -1,57 +1,107 @@
 "use client";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Discount from "./Discount";
 import OrderSummary from "./OrderSummary";
 import { useAppSelector } from "@/redux/store";
 import SingleItem from "./SingleItem";
 import Breadcrumb from "../Common/Breadcrumb";
 import Link from "next/link";
+import { useAppDispatch } from "@/redux/store";
+import { cart } from "@/redux/features/cart-slice";
+import { fetchCartFromDB } from "@/service/map/sale/cart.service";
 
 const Cart = () => {
+  const dispatch = useAppDispatch();
   const cartItems = useAppSelector((state) => state.cartReducer.items);
+  const [loading, setLoading] = useState(true);
+
+useEffect(() => {
+    const loadCart = async () => {
+      // 1. Kiểm tra xem user có token không. Nếu không, dừng luôn.
+      const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+      
+      if (!token) {
+        console.warn("Chưa đăng nhập, không gọi API lấy giỏ hàng.");
+        setLoading(false);
+        return; 
+      }
+
+      try {
+        setLoading(true);
+        const dbItems = await fetchCartFromDB();
+        
+        // ĐỒNG BỘ DB VÀO REDUX
+        const mappedItems = dbItems.map((item: any) => ({
+          id: item.id,
+          productId: item.productId,
+          title: item.product?.name || "Sản phẩm không tồn tại",
+          price: Number(item.price),
+          discountedPrice: Number(item.price),
+          quantity: item.quantity,
+          imgs: { thumbnails: item.product?.thumbnail ? [item.product.thumbnail] : [] }
+        }));
+
+        // Lưu ý: Hãy đảm bảo bạn gọi dispatch đúng cấu trúc. 
+        // Thường là dispatch(setCartItems(mappedItems)) thay vì cart.actions...
+        dispatch(cart.actions.setCartItems(mappedItems));
+
+      } catch (error: any) {
+        console.error("Lỗi tải giỏ hàng từ server:", error);
+
+        // 2. Xử lý trường hợp Token lỗi / hết hạn (Lỗi 401)
+        if (error.message.includes("401") || error.message.includes("Unauthorized")) {
+          console.warn("Token hết hạn hoặc không hợp lệ. Đang xóa token...");
+          localStorage.removeItem("accessToken");
+          
+          // (Tùy chọn) Chuyển hướng người dùng về trang đăng nhập
+          // window.location.href = "/login"; 
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadCart();
+  }, [dispatch]);
 
   return (
     <>
-      {/* <!-- ===== Breadcrumb Section Start ===== --> */}
       <section>
         <Breadcrumb title={"Cart"} pages={["Cart"]} />
       </section>
-      {/* <!-- ===== Breadcrumb Section End ===== --> */}
       {cartItems.length > 0 ? (
         <section className="overflow-hidden py-20 bg-gray-2">
           <div className="max-w-[1170px] w-full mx-auto px-4 sm:px-8 xl:px-0">
             <div className="flex flex-wrap items-center justify-between gap-5 mb-7.5">
-              <h2 className="font-medium text-dark text-2xl">Your Cart</h2>
-              <button className="text-blue">Clear Shopping Cart</button>
+              <h2 className="font-medium text-dark text-2xl">Giỏ hàng của bạn</h2>
+              <button className="text-blue">Xóa giỏ hàng</button>
             </div>
 
             <div className="bg-white rounded-[10px] shadow-1">
               <div className="w-full overflow-x-auto">
                 <div className="min-w-[1170px]">
-                  {/* <!-- table header --> */}
                   <div className="flex items-center py-5.5 px-7.5">
                     <div className="min-w-[400px]">
-                      <p className="text-dark">Product</p>
+                      <p className="text-dark">Sản phẩm</p>
                     </div>
 
                     <div className="min-w-[180px]">
-                      <p className="text-dark">Price</p>
+                      <p className="text-dark">Giá</p>
                     </div>
 
                     <div className="min-w-[275px]">
-                      <p className="text-dark">Quantity</p>
+                      <p className="text-dark">Số lượng</p>
                     </div>
 
                     <div className="min-w-[200px]">
-                      <p className="text-dark">Subtotal</p>
+                      <p className="text-dark">Tổng phụ</p>
                     </div>
 
                     <div className="min-w-[50px]">
-                      <p className="text-dark text-right">Action</p>
+                      <p className="text-dark text-right">Bỏ</p>
                     </div>
                   </div>
 
-                  {/* <!-- cart item --> */}
                   {cartItems.length > 0 &&
                     cartItems.map((item, key) => (
                       <SingleItem item={item} key={key} />
@@ -100,13 +150,13 @@ const Cart = () => {
               </svg>
             </div>
 
-            <p className="pb-6">Your cart is empty!</p>
+            <p className="pb-6">Giỏ hàng của bạn đang trống!</p>
 
             <Link
               href="/shop-with-sidebar"
               className="w-96 mx-auto flex justify-center font-medium text-white bg-dark py-[13px] px-6 rounded-md ease-out duration-200 hover:bg-opacity-95"
             >
-              Continue Shopping
+              Tiếp tục mua hàng
             </Link>
           </div>
         </>

@@ -15,7 +15,6 @@ const Home = () => {
       <Hero />
       <NewArrival />
       <CounDown />
-      <Testimonials />
       <Newsletter />
       <Footer />
     </main>

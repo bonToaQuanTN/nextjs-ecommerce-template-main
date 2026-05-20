@@ -1,76 +1,44 @@
 import React from "react";
 
-const OrderDetails = ({ orderItem }: any) => {
+const OrderDetails = ({ orderItem }) => {
   return (
-    <>
-      <div className="items-center justify-between py-4.5 px-7.5 hidden md:flex ">
-        <div className="min-w-[113px]">
-          <p className="text-custom-sm text-dark">Order</p>
+    <div className="w-full px-10 py-5">
+      <h3 className="text-lg font-bold mb-4 text-dark">Order Details</h3>
+      
+      <div className="space-y-3 text-custom-sm">
+        <div className="flex justify-between border-b pb-2">
+          <span className="text-gray-500">Order ID:</span>
+          <span className="font-medium text-dark">#{orderItem.id}</span>
         </div>
-        <div className="min-w-[113px]">
-          <p className="text-custom-sm text-dark">Date</p>
+        <div className="flex justify-between border-b pb-2">
+          <span className="text-gray-500">Date:</span>
+          <span className="text-dark">{new Date(orderItem.createdAt).toLocaleString()}</span>
         </div>
-
-        <div className="min-w-[113px]">
-          <p className="text-custom-sm text-dark">Status</p>
+        <div className="flex justify-between border-b pb-2">
+          <span className="text-gray-500">Status:</span>
+          <span className="capitalize font-medium text-dark">{orderItem.status}</span>
         </div>
-
-        {/* <div className="min-w-[113px]">
-          <p className="text-custom-sm text-dark">Title</p>
-        </div> */}
-
-        <div className="min-w-[113px]">
-          <p className="text-custom-sm text-dark">Total</p>
+        <div className="flex justify-between border-b pb-2">
+          <span className="text-gray-500">Total Amount:</span>
+          <span className="font-bold text-green">${Number(orderItem.finalAmount || 0).toFixed(2)}</span>
         </div>
-
-        {/* <div className="min-w-[113px]">
-          <p className="text-custom-sm text-dark">Action</p>
-        </div> */}
-      </div>
-
-      <div className="items-center justify-between border-t border-gray-3 py-5 px-7.5 hidden md:flex">
-        <div className="min-w-[111px]">
-          <p className="text-custom-sm text-red">
-            #{orderItem.orderId.slice(-8)}
-          </p>
-        </div>
-        <div className="min-w-[175px]">
-          <p className="text-custom-sm text-dark">
-            {orderItem.createdAt}
+        
+        {/* Hiển thị địa chỉ thật từ DB */}
+        <div className="mt-4 pt-4 border-t border-gray-200">
+          <p className="font-bold text-dark mb-1">Shipping Address:</p>
+          <p className="text-gray-600">
+            {orderItem.shippingAddress || "Not provided"}
           </p>
         </div>
 
-        <div className="min-w-[128px]">
-          <p
-            className={`inline-block text-custom-sm  py-0.5 px-2.5 rounded-[30px] capitalize ${
-              orderItem.status === "delivered"
-                ? "text-green bg-green-light-6"
-                : orderItem.status === "on-hold"
-                ? "text-red bg-red-light-6"
-                : orderItem.status === "processing"
-                ? "text-yellow bg-yellow-light-4"
-                : "Unknown Status"
-            }`}
-          >
-            {orderItem.status}
-          </p>
-        </div>
-
-        {/* <div className="min-w-[213px]">
-          <p className="text-custom-sm text-dark">{orderItem.orderTitle}</p>
-        </div> */}
-
-        <div className="min-w-[113px]">
-          <p className="text-custom-sm text-dark">
-            {orderItem.total}
-          </p>
+        {/* Hiển thị Info User */}
+        <div className="mt-4 pt-4 border-t border-gray-200">
+          <p className="font-bold text-dark mb-1">Customer Info:</p>
+          <p className="text-gray-600">{orderItem.user?.firstName} {orderItem.user?.lastName}</p>
+          <p className="text-gray-600">{orderItem.user?.email}</p>
         </div>
       </div>
-      <div className="px-7.5 w-full">
-        <p className="font-bold">Shipping Address:</p>{" "}
-        <p>942 Aspen Road Encino, CA 91316</p>
-      </div>
-    </>
+    </div>
   );
 };
 

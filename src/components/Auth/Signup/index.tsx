@@ -52,9 +52,9 @@ const Signup = () => {
           <div className="max-w-[570px] w-full mx-auto rounded-xl bg-white shadow-1 p-4 sm:p-7.5 xl:p-11">
             <div className="text-center mb-11">
               <h2 className="font-semibold text-xl sm:text-2xl xl:text-heading-5 text-dark mb-1.5">
-                Create an Account
+                Tạo tài khoản
               </h2>
-              <p>Enter your detail below</p>
+              <p>Vui lòng nhập thông tin của bạn bên dưới.</p>
               {error && (
                 <div className="bg-red-50 border-l-4 border-red-500 px-4 py-3 mb-6 mt-6 rounded-lg text-red-500 text-left">
                   <p className="text-sm">{error}</p>
@@ -64,13 +64,13 @@ const Signup = () => {
               <form onSubmit={handleSignup}>
                 <div className="mb-5">
                   <label htmlFor="fullName" className="block mb-2.5">
-                    Full Name <span className="text-red">*</span>
+                    Họ tên <span className="text-red">*</span>
                   </label>
                   <input
                     type="text"
                     id="fullName"
                     name="fullName"
-                    placeholder="full name"
+                    placeholder="Nguyễn Lê Minh Quân"
                     required
                     value={form.fullName}
                     onChange={(e) => setForm({ ...form, fullName: e.target.value })}
@@ -80,13 +80,13 @@ const Signup = () => {
 
                 <div className="mb-5">
                   <label htmlFor="email" className="block mb-2.5">
-                    Email Address <span className="text-red">*</span>
+                    Địa chỉ Email <span className="text-red">*</span>
                   </label>
                   <input
                     type="email"
                     id="email"
                     name="email"
-                    placeholder="Enter your email address"
+                    placeholder="quantctin@gmail.com"
                     required
                     value={form.email}
                     onChange={(e) => setForm({ ...form, email: e.target.value.toLowerCase().trim() })}
@@ -102,7 +102,7 @@ const Signup = () => {
                     type="tel"
                     id="phone"
                     name="phone"
-                    placeholder="Enter your phone number"
+                    placeholder="0975776973"
                     required
                     value={form.phone}
                     onChange={(e) => setForm({ ...form, phone: e.target.value })}
@@ -112,13 +112,13 @@ const Signup = () => {
 
                 <div className="mb-5">
                   <label htmlFor="password" className="block mb-2.5">
-                    Password <span className="text-red">*</span>
+                    Mật khẩu <span className="text-red">*</span>
                   </label>
                   <input
                     type="password"
                     id="password"
                     name="password"
-                    placeholder="Enter your password (min 6 characters)"
+                    placeholder="Nhập mật khẩu"
                     required
                     value={form.password}
                     onChange={(e) => setForm({ ...form, password: e.target.value })}
@@ -128,7 +128,7 @@ const Signup = () => {
                 </div>
                 <div className="mb-5">
                   <label htmlFor="confirmPassword" className="block mb-2.5">
-                    Confirm Password <span className="text-red">*</span>
+                    Xác nhận mật khẩu <span className="text-red">*</span>
                   </label>
                   <input
                     type="password"
@@ -148,12 +148,12 @@ const Signup = () => {
                   disabled={isLoading}
                   className="w-full flex justify-center font-medium text-white bg-dark py-3 px-6 rounded-lg ease-out duration-200 hover:bg-blue mt-7.5 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isLoading ? "Creating Account..." : "Create Account"}
+                  {isLoading ? "Creating Account..." : "Đăng ký"}
                 </button>
 
                 <p className="text-center mt-6">
-                  Already have an account?
-                  <Link href="/signin" className="text-dark ease-out duration-200 hover:text-blue pl-2">Sign in Now</Link>
+                  Bạn đã có tài khoản
+                  <Link href="/signin" className="text-dark ease-out duration-200 hover:text-blue pl-2">Đăng nhập</Link>
                 </p>
               </form>
             </div>

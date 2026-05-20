@@ -54,7 +54,7 @@ const Signin = () => {
           <div className="max-w-[570px] w-full mx-auto rounded-xl bg-white shadow-1 p-4 sm:p-7.5 xl:p-11">
             <div className="text-center mb-11">
               <h2 className="font-semibold text-xl sm:text-2xl xl:text-heading-5 text-dark mb-1.5">
-                Sign In to Your Account
+                Đăng nhập vào tài khoản của bạn
               </h2>
               {error && (
                 <div className="bg-red-50 border-l-4 border-red-500 px-4 py-3 mb-6 rounded-lg text-red-500">
@@ -68,7 +68,7 @@ const Signin = () => {
                     type="email"
                     name="email"
                     id="email"
-                    placeholder="Enter your email"
+                    placeholder="Nhập email của bạn"
                     required 
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -77,12 +77,12 @@ const Signin = () => {
                 </div>
 
                 <div className="mb-5">
-                  <label htmlFor="password" className="block mb-2.5">Password</label>
+                  <label htmlFor="password" className="block mb-2.5">Mật khẩu</label>
                   <input
                     type="password"
                     name="password"
                     id="password"
-                    placeholder="Enter your password"
+                    placeholder="Nhập mật khẩu của bạn"
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -95,13 +95,13 @@ const Signin = () => {
                   disabled={isLoading} 
                   className="w-full flex justify-center font-medium text-white bg-dark py-3 px-6 rounded-lg ease-out duration-200 hover:bg-blue mt-7.5 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isLoading ? "Signing in..." : "Sign in to account"}
+                  {isLoading ? "Signing in..." : "Đăng nhập"}
                 </button>
                 <a
                   href="/forgot-password" 
                   className="block text-center text-dark-4 mt-4.5 ease-out duration-200 hover:text-dark"
                 >
-                  Forget your password?
+                  Quên mật khẩu?
                 </a>
 
                 <span className="relative z-1 block font-medium text-center mt-4.5">
@@ -113,9 +113,9 @@ const Signin = () => {
                 </div>
 
                 <p className="text-center mt-6">
-                  Don&apos;t have an account?
+                  Tôi chưa có tài khoản?
                   <Link href="/signup" className="text-dark ease-out duration-200 hover:text-blue pl-2">
-                    Sign Up Now!
+                    Đăng ký ngay!
                   </Link>
                 </p>
               </form>

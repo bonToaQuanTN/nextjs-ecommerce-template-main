@@ -20,12 +20,11 @@ const ShopWithoutSidebar = () => {
     { label: "Old Products", value: "2" },
   ];
 
-  // 3. Dùng useEffect để gọi API khi component được mount
     useEffect(() => {
     const fetchProducts = async () => {
       try {
         setLoading(true);
-        const data: any = await shopData(1); // Thêm ': any' ở đây để khai báo kiểu cho data
+        const data: any = await shopData(1); 
         
         const formattedData = Array.isArray(data) ? data : (data?.data || []);
         
@@ -59,12 +58,11 @@ const ShopWithoutSidebar = () => {
                     <CustomSelect options={options} />
 
                     <p>
-                      Showing <span className="text-dark">{products.length}</span>{" "}
-                      Products
+                      Đang hiển thị <span className="text-dark">{products.length}</span>{" "}
+                      Các sản phẩm
                     </p>
                   </div>
 
-                  {/* <!-- top bar right --> */}
                   <div className="flex items-center gap-2.5">
                     <button
                       onClick={() => setProductStyle("grid")}

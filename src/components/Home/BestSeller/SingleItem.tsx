@@ -32,7 +32,6 @@ const SingleItem = ({ item }: { item: Product }) => {
         <div className="text-center px-4 py-7.5">
           <div className="flex items-center justify-center gap-2.5 mb-2">
             <div className="flex items-center gap-1">
-              {/* Tạm thời hardcode 5 sao vì Backend chưa có API đánh giá */}
               <Image src="/images/icons/icon-star.svg" alt="star icon" width={14} height={14} />
               <Image src="/images/icons/icon-star.svg" alt="star icon" width={14} height={14} />
               <Image src="/images/icons/icon-star.svg" alt="star icon" width={14} height={14} />
@@ -65,9 +64,6 @@ const SingleItem = ({ item }: { item: Product }) => {
         </div>
 
         <div className="flex justify-center items-center">
-          {/* 
-            3. SỬA ẢNH: Thêm dấu '?' chống crash khi Backend chưa có ảnh. Thêm ảnh dự phòng.
-          */}
           <Image 
             src={item.imgs?.previews?.[0] || "/images/placeholder.png"} 
             alt={item.title || "Product"} 

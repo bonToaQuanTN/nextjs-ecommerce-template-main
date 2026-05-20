@@ -1,21 +1,46 @@
-import axiosInstance from '../../api-client';
 
-export const getMyCart = async () => {
-  const res = await axiosInstance.get('/carts/my-cart');
-  return res.data;
-};
-export const addToCart = async (cartId: string, productId: string, quantity: number) => {
-  const res = await axiosInstance.post('/cart-items', { cartId, productId, quantity });
-  return res.data;
-};
-export const processCheckout = async (shippingAddress: string, discountId?: string) => {
-  const res = await axiosInstance.post('/orders/checkout', { 
-    shippingAddress, 
-    discountId
+const API_BASE = '/api';
+export const fetchCartFromDB = async () => {
+  const res = await fetch(`${API_BASE}/carts/my-cart`, {
+    headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }
   });
-  if (res.data.url) {
-    window.location.href = res.data.url;
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    console.error(`API Error (${res.status}):`, errorText);
+    throw new Error(`Failed to fetch cart: ${res.statusText}`);
   }
-  
-  return res.data;
+
+  if (!res.ok) throw new Error('Failed to fetch cart');
+    const data = await res.json();
+    return data.cartItems || [];
+};
+
+export const addItemToDB = async (productId: string, quantity: number, price: number) => {
+  return fetch(`${API_BASE}/cart-items`, {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+    },
+    body: JSON.stringify({ cartId: 'temp', productId, quantity, price }) 
+  });
+};
+
+export const updateItemInDB = async (cartItemId: string, quantity: number) => {
+  return fetch(`${API_BASE}/cart-items/${cartItemId}`, {
+    method: 'PUT',
+    headers: { 
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+    },
+    body: JSON.stringify({ quantity })
+  });
+};
+
+export const removeItemFromDB = async (cartItemId: string) => {
+  return fetch(`${API_BASE}/cart-items/${cartItemId}`, {
+    method: 'DELETE',
+    headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }
+  });
 };
