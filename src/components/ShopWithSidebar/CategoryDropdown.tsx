@@ -6,7 +6,7 @@ const CategoryItem = ({ category, isActive, onSelect }) => {
       className={`${
         isActive ? "text-blue" : ""
       } group flex items-center justify-between ease-out duration-200 hover:text-blue`}
-      onClick={() => onSelect(category.id)} 
+       onClick={() => onSelect(category.name)} 
     >
       <div className="flex items-center gap-2">
         <div
@@ -31,7 +31,7 @@ const CategoryItem = ({ category, isActive, onSelect }) => {
   );
 };
 
-const CategoryDropdown = ({ categories, activeCategoryId, onSelectCategory }) => {
+const CategoryDropdown = ({ categories, activeCategoryName, onSelectCategory }) => {
   const [toggleDropdown, setToggleDropdown] = useState(true);
   return (
     <div className="bg-white shadow-1 rounded-lg">
@@ -52,20 +52,23 @@ const CategoryDropdown = ({ categories, activeCategoryId, onSelectCategory }) =>
         </button>
       </div>
 
-      <div className={`flex-col gap-3 py-6 pl-6 pr-5.5 ${toggleDropdown ? "flex" : "hidden"}`}>
-        <button onClick={() => onSelectCategory(null)} className={`group flex items-center gap-2 ease-out duration-200 hover:text-blue ${activeCategoryId === null ? "text-blue" : ""}`}>
-           <span>Tất cả</span>
-        </button>
-
-        {categories.map((category) => (
-          <CategoryItem 
-            key={category.id} 
-            category={category} 
-            isActive={activeCategoryId === category.id}
-            onSelect={onSelectCategory}
-          />
-        ))}
-      </div>
+  <div className={`flex-col gap-3 py-6 pl-6 pr-5.5 ${toggleDropdown ? "flex" : "hidden"}`}>
+    <button 
+      onClick={() => onSelectCategory(null)} 
+      className={`group flex items-center gap-2 ease-out duration-200 hover:text-blue ${activeCategoryName === null ? "text-blue" : ""}`}
+    >
+      <span>Tất cả</span>
+    </button>
+    
+    {categories.map((category) => (
+      <CategoryItem 
+        key={category.id} 
+        category={category} 
+        isActive={activeCategoryName === category.name}
+        onSelect={(name) => onSelectCategory(name)} 
+      />
+    ))}
+  </div>
     </div>
   );
 };

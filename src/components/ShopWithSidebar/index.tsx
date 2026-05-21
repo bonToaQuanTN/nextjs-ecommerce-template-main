@@ -15,6 +15,8 @@ const ShopWithSidebar = () => {
   const [productStyle, setProductStyle] = useState("grid");
   const [productSidebar, setProductSidebar] = useState(false);
   const [stickyMenu, setStickyMenu] = useState(false);
+  const [searchQuery, setSearchQuery] = useState(""); // Giá trị tạm thời trong ô input
+  const [activeSearch, setActiveSearch] = useState<string | null>(null); // Giá trị thật sự gửi đi gọi API
   
   const [products, setProducts] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -22,7 +24,7 @@ const ShopWithSidebar = () => {
   const [loading, setLoading] = useState(true);
 
   const [categories, setCategories] = useState([]);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [selectedCategoryName, setSelectedCategoryName] = useState<string | null>(null);
 
    const handleStickyMenu = () => {
     if (window.scrollY >= 80) {
@@ -32,12 +34,12 @@ const ShopWithSidebar = () => {
     }
   };
 
-  const options = [
-    { label: "Latest Products", value: "0" },
-    { label: "Best Selling", value: "1" },
-    { label: "Old Products", value: "2" },
-  ];
 
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setActiveSearch(searchQuery); 
+    setCurrentPage(1); 
+  };
   useEffect(() => {
     window.addEventListener("scroll", handleStickyMenu);
 
@@ -70,7 +72,7 @@ const ShopWithSidebar = () => {
     const fetchProducts = async () => {
       setLoading(true);
       try {
-        const result = await getClientSideProducts(currentPage, selectedCategoryId);
+        const result = await getClientSideProducts(currentPage, selectedCategoryName);
         setProducts(result.data);
         setTotalPages(result.totalPages);
       } catch (error) {
@@ -81,9 +83,9 @@ const ShopWithSidebar = () => {
     };
 
     fetchProducts();
-  }, [currentPage, selectedCategoryId]);
-  const handleCategorySelect = (categoryId: string | null) => {
-    setSelectedCategoryId(categoryId);
+  }, [currentPage, selectedCategoryName]);
+  const handleCategorySelect = (categoryName: string | null) => {
+    setSelectedCategoryName(categoryName);
     setCurrentPage(1);
   };
 
@@ -105,7 +107,7 @@ const ShopWithSidebar = () => {
               {/* 5. TRUYỀN PROPS VÀO CATEGORYDROPDOWN */}
               <CategoryDropdown 
                 categories={categories} 
-                activeCategoryId={selectedCategoryId}
+                activeCategoryName={selectedCategoryName}
                 onSelectCategory={handleCategorySelect}
               />
               <div className="mt-6">
@@ -137,8 +139,6 @@ const ShopWithSidebar = () => {
                   </div>
                 )}
               </div>
-
-              {/* ... Phần Pagination giữ nguyên ... */}
             </div>
           </div>
         </div>

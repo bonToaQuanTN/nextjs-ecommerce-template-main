@@ -22,13 +22,9 @@ export const useCartModalContext = () => {
 export const CartModalProvider = ({ children }) => {
   const [isCartModalOpen, setIsCartModalOpen] = useState(false);
 
-  const openCartModal = () => {
-    setIsCartModalOpen(true);
-  };
+  const openCartModal = () => { setIsCartModalOpen(true); };
 
-  const closeCartModal = () => {
-    setIsCartModalOpen(false);
-  };
+  const closeCartModal = () => {  setIsCartModalOpen(false); };
 
   return (
     <CartModalContext.Provider

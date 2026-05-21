@@ -9,6 +9,35 @@ import Image from "next/image";
 import { usePreviewSlider } from "@/app/context/PreviewSliderContext";
 import { resetQuickView } from "@/redux/features/quickView-slice";
 import { updateproductDetails } from "@/redux/features/product-details";
+import { addItemToCartAsync } from "@/redux/features/cart-slice";
+import { getToken } from "@/service/map/lib/token";
+
+
+const handleAddToCart = (product) => {
+  const dispatch = useDispatch<AppDispatch>();
+  const token = getToken();
+  
+  if (token) {
+    dispatch(addItemToCartAsync({
+      id: product.id,
+      productId: product.id,
+      title: product.name,
+      price: product.price,
+      discountedPrice: product.discountedPrice || product.price,
+      quantity: 1,
+      imgs: { thumbnails: [product.thumbnail] }
+    }));
+  } else {
+    dispatch(addItemToCart({
+      id: product.id,
+      title: product.name,
+      price: product.price,
+      discountedPrice: product.discountedPrice || product.price,
+      quantity: 1,
+      imgs: { thumbnails: [product.thumbnail] }
+    }));
+  }
+};
 
 const QuickViewModal = () => {
   const { isModalOpen, closeModal } = useModalContext();

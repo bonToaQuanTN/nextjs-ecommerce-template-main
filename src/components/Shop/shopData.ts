@@ -47,25 +47,44 @@ export const getClientSideCategories = async () => {
     return [];
   }
 };
-
-export const getClientSideProducts = async (page: number = 1, categoryId?: string | null) => {
+  export const getClientSideProducts = async (
+  page: number = 1, 
+  categoryName?: string | null, 
+  searchQuery?: string | null // Thêm tham số searchQuery
+) => {
   try {
-    const params = new URLSearchParams({ page: String(page) });
-    if (categoryId) {
-      params.append('categoryId', categoryId);
+    let url = '';
+
+    // 1. Ưu tiên tìm kiếm nếu có từ khóa (endpoint GET /search)
+    if (searchQuery && searchQuery.trim() !== '') {
+      url = `${API_URL}/search?name=${encodeURIComponent(searchQuery.trim())}&page=${page}`;
+    } 
+    // 2. Nếu không tìm kiếm, kiểm tra xem có lọc theo danh mục không (endpoint GET /categories/:name/products)
+    else if (categoryName) {
+      url = `${API_URL}/categories/${encodeURIComponent(categoryName)}/products?page=${page}`;
+    }
+    else {
+      url = `${API_URL}/products?page=${page}`;
     }
 
-    const res = await fetch(`${API_URL}/products?${params.toString()}`);
+    const res = await fetch(url);
+    
+    if (!res.ok) {
+      throw new Error('Failed to fetch products');
+    }
+
     const json = await res.json();
     
     return {
-      data: json.data.map(mapBackendToProduct),
-      totalPages: json.totalPages
+      data: json.data ? json.data.map(mapBackendToProduct) : [],
+      totalPages: json.totalPages || 0
     };
   } catch (error) {
+    console.error("Error in getClientSideProducts:", error);
     return { data: [], totalPages: 0 };
   }
 };
+
 
 export const getServerSideProducts = async (page: number = 1): Promise<Product[]> => {
   try {

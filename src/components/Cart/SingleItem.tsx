@@ -1,22 +1,30 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { AppDispatch } from "@/redux/store";
 import { useDispatch } from "react-redux";
-import {removeItemFromCart,  updateCartItemQuantity, removeItemFromDB 
+import {
+  removeItemFromCart,
+  updateCartItemQuantity
 } from "@/redux/features/cart-slice";
 import Image from "next/image";
-import { updateItemInDB } from "@/service/map/sale/cart.service";
+import { removeItemFromDB, updateItemInDB } from "@/service/map/sale/cart.service";
 
 const SingleItem = ({ item }) => {
-  const [quantity, setQuantity] = useState(item.quantity);
   const dispatch = useDispatch<AppDispatch>();
+  const [quantity, setQuantity] = useState(item.quantity);
+
+  // ✅ Sync quantity khi item.quantity thay đổi từ Redux
+  useEffect(() => {
+    setQuantity(item.quantity);
+  }, [item.quantity]);
 
   const currentPrice = item.discountedPrice || item.price || 0;
-  
+
   const handleRemoveFromCart = async () => {
     dispatch(removeItemFromCart(item.id));
     try {
       await removeItemFromDB(item.id);
     } catch (error) {
+      console.error("Lỗi xóa sản phẩm khỏi giỏ hàng:", error);
       alert("Lỗi xóa sản phẩm khỏi giỏ hàng");
     }
   };
@@ -24,12 +32,14 @@ const SingleItem = ({ item }) => {
   const handleIncreaseQuantity = async () => {
     const newQty = quantity + 1;
     setQuantity(newQty);
-    dispatch(updateCartItemQuantity({ id: item.id, quantity: newQty })); 
-    
+    dispatch(updateCartItemQuantity({ id: item.id, quantity: newQty }));
+
     try {
       await updateItemInDB(item.id, newQty);
     } catch (error) {
-      alert("Lỗi cập nhật số lượng");
+      console.error("Lỗi cập nhật số lượng:", error);
+      setQuantity(quantity); // rollback
+      dispatch(updateCartItemQuantity({ id: item.id, quantity }));
     }
   };
 
@@ -38,11 +48,13 @@ const SingleItem = ({ item }) => {
       const newQty = quantity - 1;
       setQuantity(newQty);
       dispatch(updateCartItemQuantity({ id: item.id, quantity: newQty }));
-      
+
       try {
         await updateItemInDB(item.id, newQty);
       } catch (error) {
-        alert("Lỗi cập nhật số lượng");
+        console.error("Lỗi cập nhật số lượng:", error);
+        setQuantity(quantity); // rollback
+        dispatch(updateCartItemQuantity({ id: item.id, quantity }));
       }
     }
   };

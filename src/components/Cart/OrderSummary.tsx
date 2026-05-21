@@ -1,14 +1,74 @@
-import React from "react";
-import { useSelector } from "react-redux";
-import { selectTotalPrice } from "@/redux/features/cart-slice";
+import React, { useState } from "react";
 import { useAppSelector } from "@/redux/store";
+import { useRouter } from "next/navigation";
 
 const OrderSummary = () => {
   const cartItems = useAppSelector((state) => state.cartReducer.items);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const router = useRouter();
+
   const totalPrice = cartItems.reduce((total, item) => {
     const price = item.discountedPrice || item.price || 0;
     return total + (price * item.quantity);
   }, 0);
+
+  const handleCheckout = async () => {
+    if (cartItems.length === 0) return;
+    
+    try {
+      setIsProcessing(true);
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        alert("Vui lòng đăng nhập trước khi thanh toán!");
+        router.push('/signin');
+        return;
+      }
+      const orderRes = await fetch('/api/orders/checkout', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json', 
+          'Authorization': `Bearer ${token}` 
+        },
+        body: JSON.stringify({ 
+          shippingAddress: "Địa chỉ mặc định từ form billing", 
+          discountId: null 
+        })
+      });
+
+      if (!orderRes.ok) {
+        const errData = await orderRes.json();
+        throw new Error(errData.message || "Lỗi khi tạo đơn hàng (Có thể sản phẩm đã hết hàng)");
+      }
+
+      const orderData = await orderRes.json();
+      const realOrderId = orderData.id; // LẤY ID ĐƠN HÀNG THẬT TỪ DATABASE
+      const stripeRes = await fetch('/api/payment/checkout', {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ id: realOrderId })
+      });
+
+      if (!stripeRes.ok) {
+        throw new Error("Lỗi khi kết nối với cổng thanh toán Stripe");
+      }
+
+      const stripeData = await stripeRes.json();
+      if (stripeData.url) {
+        window.location.href = stripeData.url;
+      } else {
+        throw new Error("Không nhận được link thanh toán từ Stripe");
+      }
+      
+    } catch (error: any) {
+      console.error("Lỗi checkout:", error);
+      alert(error.message || "Có lỗi xảy ra khi tiến hành thanh toán!");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   return (
     <div className="lg:max-w-[455px] w-full">
@@ -44,18 +104,19 @@ const OrderSummary = () => {
               <p className="font-medium text-lg text-dark">Tổng cộng</p>
             </div>
             <div>
-              {/* SỬA: Hiển thị tổng tiền đúng */}
               <p className="font-medium text-lg text-dark text-right">
                 ${totalPrice.toFixed(2)}
               </p>
             </div>
           </div>
-          <a 
-            href="/checkout" 
-            className="w-full flex justify-center font-medium text-white bg-blue py-3 px-6 rounded-md ease-out duration-200 hover:bg-blue-dark mt-7.5"
+          
+          <button
+            onClick={handleCheckout}
+            disabled={isProcessing || cartItems.length === 0}
+            className="w-full flex justify-center font-medium text-white bg-blue py-3 px-6 rounded-md ease-out duration-200 hover:bg-blue-dark mt-7.5 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Tiến hành thanh toán
-          </a>
+            {isProcessing ? "Đang xử lý..." : "Tiến hành thanh toán"}
+          </button>
         </div>
       </div>
     </div>

@@ -9,19 +9,19 @@ import Link from "next/link";
 import { useAppDispatch } from "@/redux/store";
 import { cart } from "@/redux/features/cart-slice";
 import { fetchCartFromDB } from "@/service/map/sale/cart.service";
+import { removeToken,getToken } from "@/service/map/lib/token";
 
 const Cart = () => {
   const dispatch = useAppDispatch();
   const cartItems = useAppSelector((state) => state.cartReducer.items);
   const [loading, setLoading] = useState(true);
 
-useEffect(() => {
+  useEffect(() => {
     const loadCart = async () => {
-      // 1. Kiểm tra xem user có token không. Nếu không, dừng luôn.
-      const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+      const token = getToken();
       
       if (!token) {
-        console.warn("Chưa đăng nhập, không gọi API lấy giỏ hàng.");
+        console.warn("Chưa đăng nhập, giữ nguyên giỏ hàng local.");
         setLoading(false);
         return; 
       }
@@ -29,32 +29,26 @@ useEffect(() => {
       try {
         setLoading(true);
         const dbItems = await fetchCartFromDB();
-        
-        // ĐỒNG BỘ DB VÀO REDUX
-        const mappedItems = dbItems.map((item: any) => ({
-          id: item.id,
-          productId: item.productId,
-          title: item.product?.name || "Sản phẩm không tồn tại",
-          price: Number(item.price),
-          discountedPrice: Number(item.price),
-          quantity: item.quantity,
-          imgs: { thumbnails: item.product?.thumbnail ? [item.product.thumbnail] : [] }
-        }));
 
-        // Lưu ý: Hãy đảm bảo bạn gọi dispatch đúng cấu trúc. 
-        // Thường là dispatch(setCartItems(mappedItems)) thay vì cart.actions...
-        dispatch(cart.actions.setCartItems(mappedItems));
+        if (dbItems.length > 0) {
+          const mappedItems = dbItems.map((item: any) => ({
+            id: item.id,
+            productId: item.productId,
+            title: item.product?.name || "Sản phẩm không tồn tại",
+            price: Number(item.price),
+            discountedPrice: Number(item.price),
+            quantity: item.quantity,
+            imgs: {
+              thumbnails: item.product?.thumbnail ? [item.product.thumbnail] : []
+            }
+          }));
+          dispatch(cart.actions.setCartItems(mappedItems));
+        }
 
       } catch (error: any) {
         console.error("Lỗi tải giỏ hàng từ server:", error);
-
-        // 2. Xử lý trường hợp Token lỗi / hết hạn (Lỗi 401)
         if (error.message.includes("401") || error.message.includes("Unauthorized")) {
-          console.warn("Token hết hạn hoặc không hợp lệ. Đang xóa token...");
-          localStorage.removeItem("accessToken");
-          
-          // (Tùy chọn) Chuyển hướng người dùng về trang đăng nhập
-          // window.location.href = "/login"; 
+          removeToken();
         }
       } finally {
         setLoading(false);
