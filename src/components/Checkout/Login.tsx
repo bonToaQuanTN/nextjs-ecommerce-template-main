@@ -13,7 +13,7 @@ const Login = () => {
       >
         Returning customer?
         <span className="flex items-center gap-2.5 pl-1 font-medium text-dark">
-          Click here to login
+          Đăng nhập tại đây
           <svg
             className={`${
               dropdown && "rotate-180"

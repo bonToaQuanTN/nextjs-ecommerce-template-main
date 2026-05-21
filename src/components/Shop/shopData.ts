@@ -2,7 +2,6 @@ import { Product } from "@/types/product";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
-// Hàm map dữ liệu backend sang frontend
 function mapBackendToProduct(item: any): Product {
   const previewImages = item.productImages?.map((img: any) => img.imageUrl) || [];
   const thumbnailImages = item.thumbnail ? [item.thumbnail] : [];
@@ -47,19 +46,17 @@ export const getClientSideCategories = async () => {
     return [];
   }
 };
-  export const getClientSideProducts = async (
+
+export const getClientSideProducts = async (
   page: number = 1, 
   categoryName?: string | null, 
   searchQuery?: string | null // Thêm tham số searchQuery
 ) => {
   try {
     let url = '';
-
-    // 1. Ưu tiên tìm kiếm nếu có từ khóa (endpoint GET /search)
     if (searchQuery && searchQuery.trim() !== '') {
       url = `${API_URL}/search?name=${encodeURIComponent(searchQuery.trim())}&page=${page}`;
     } 
-    // 2. Nếu không tìm kiếm, kiểm tra xem có lọc theo danh mục không (endpoint GET /categories/:name/products)
     else if (categoryName) {
       url = `${API_URL}/categories/${encodeURIComponent(categoryName)}/products?page=${page}`;
     }

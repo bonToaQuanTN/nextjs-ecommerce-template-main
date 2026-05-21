@@ -64,9 +64,7 @@ const Checkout = () => {
       }
 
       const orderData = await orderRes.json();
-      const newOrderId = orderData.id; // Lấy ID đơn hàng vừa tạo
-
-      // BƯỚC B: Gọi API Stripe để lấy link thanh toán
+      const newOrderId = orderData.id; 
       const stripeRes = await fetch('/api/payment/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` },
@@ -76,8 +74,6 @@ const Checkout = () => {
       if (!stripeRes.ok) throw new Error('Lỗi khởi tạo thanh toán');
 
       const stripeData = await stripeRes.json();
-
-      // BƯỚC C: Chuyển hướng user sang trang thanh toán của Stripe
       if (stripeData.url) {
         window.location.href = stripeData.url;
       }
