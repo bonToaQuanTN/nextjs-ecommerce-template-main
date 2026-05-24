@@ -1,26 +1,32 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 
 import { useCartModalContext } from "@/app/context/CartSidebarModalContext";
-import {
-  removeItemFromCart,
-  selectTotalPrice,
-} from "@/redux/features/cart-slice";
-import { useAppSelector } from "@/redux/store";
-import { useSelector } from "react-redux";
+import {  fetchCartAsync,  removeCartItemAsync,  selectTotalPrice,} from "@/redux/features/cartItem-slide";
+import { useAppSelector, useAppDispatch } from "@/redux/store";
 import SingleItem from "./SingleItem";
 import Link from "next/link";
 import EmptyCart from "./EmptyCart";
 
 const CartSidebarModal = () => {
   const { isCartModalOpen, closeCartModal } = useCartModalContext();
-  const cartItems = useAppSelector((state) => state.cartReducer.items);
+  const dispatch = useAppDispatch();
 
-  const totalPrice = useSelector(selectTotalPrice);
+  // ✅ Sửa selector cho đúng state mới: state.cart.cartItems
+  const cartItems = useAppSelector((state) => state.cart.cartItems);
+  const loading = useAppSelector((state) => state.cart.loading);
+  const totalPrice = useAppSelector(selectTotalPrice);
 
+  // ✅ GỌI API LẤY GIỎ HÀNG KHI MỞ MODAL
   useEffect(() => {
-    // closing modal while clicking outside
-    function handleClickOutside(event) {
+    if (isCartModalOpen) {
+      dispatch(fetchCartAsync());
+    }
+  }, [isCartModalOpen, dispatch]);
+
+  // Đóng modal khi click bên ngoài
+  useEffect(() => {
+    function handleClickOutside(event: any) {
       if (!event.target.closest(".modal-content")) {
         closeCartModal();
       }
@@ -34,6 +40,11 @@ const CartSidebarModal = () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isCartModalOpen, closeCartModal]);
+
+  // ✅ XÓA SẢN PHẨM QUA API
+  const handleRemoveItem = (cartItemId: string) => {
+    dispatch(removeCartItemAsync(cartItemId));
+  };
 
   return (
     <div
@@ -75,26 +86,31 @@ const CartSidebarModal = () => {
           </div>
 
           <div className="h-[66vh] overflow-y-auto no-scrollbar">
-            <div className="flex flex-col gap-6">
-              {/* <!-- cart item --> */}
-              {cartItems.length > 0 ? (
-                cartItems.map((item, key) => (
-                  <SingleItem
-                    key={key}
-                    item={item}
-                    removeItemFromCart={removeItemFromCart}
-                  />
-                ))
-              ) : (
-                <EmptyCart />
-              )}
-            </div>
+            {loading && cartItems.length === 0 ? (
+              <div className="flex items-center justify-center h-full">
+                <p>Đang tải giỏ hàng...</p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-6">
+                {/* <!-- cart item --> */}
+                {cartItems.length > 0 ? (
+                  cartItems.map((item, key) => (
+                    <SingleItem
+                      key={key}
+                      item={item}
+                      removeItemFromCart={handleRemoveItem} 
+                    />
+                  ))
+                ) : (
+                  <EmptyCart />
+                )}
+              </div>
+            )}
           </div>
 
           <div className="border-t border-gray-3 bg-white pt-5 pb-4 sm:pb-7.5 lg:pb-11 mt-7.5 sticky bottom-0">
             <div className="flex items-center justify-between gap-5 mb-6">
               <p className="font-medium text-xl text-dark">Tổng tiền:</p>
-
               <p className="font-medium text-xl text-dark">${totalPrice}</p>
             </div>
 

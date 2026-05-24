@@ -6,7 +6,7 @@ import { menuData } from "./menuData";
 import Dropdown from "./Dropdown";
 import { useAppSelector } from "@/redux/store"; // Chỉ lấy useAppSelector từ store
 import { useDispatch ,useSelector} from "react-redux";     // Lấy useDispatch từ react-redux
-import { selectTotalPrice } from "@/redux/features/cart-slice";
+import { selectTotalPrice } from "@/redux/features/cartItem-slide";
 import { logout } from "@/redux/features/auth-slice"; 
 import { useCartModalContext } from "@/app/context/CartSidebarModalContext";
 import Image from "next/image";
@@ -27,7 +27,7 @@ const Header = () => {
   const [totalPages, setTotalPages] = useState(1);
 
   const { openCartModal } = useCartModalContext();
-  const product = useAppSelector((state) => state.cartReducer.items);
+  const product = useAppSelector((state) => state.cartReducer.cartItems);
   const totalPrice = useSelector(selectTotalPrice);
   const isAuthenticated = useAppSelector((state) => state.authReducer?.isAuthenticated || false);
   const dispatch = useDispatch();

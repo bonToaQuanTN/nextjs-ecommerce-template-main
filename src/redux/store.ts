@@ -1,7 +1,7 @@
 import { configureStore } from "@reduxjs/toolkit";
 
 import quickViewReducer from "./features/quickView-slice";
-import cartReducer from "./features/cart-slice";
+import cartReducer from "./features/cartItem-slide";
 import wishlistReducer from "./features/wishlist-slice";
 import productDetailsReducer from "./features/product-details";
 import authReducer from "./features/auth-slice";
@@ -15,6 +15,7 @@ export const store = configureStore({
     wishlistReducer,
     productDetailsReducer,
     authReducer,
+    cart: cartReducer, // Thêm cartReducer vào store
   },
   
 });

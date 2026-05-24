@@ -3,13 +3,12 @@ import React, { useEffect, useState } from "react";
 
 import { useModalContext } from "@/app/context/QuickViewModalContext";
 import { AppDispatch, useAppSelector } from "@/redux/store";
-import { addItemToCart } from "@/redux/features/cart-slice";
+import { addItemToCart,addItemToCartAsync } from "@/redux/features/cartItem-slide";
 import { useDispatch } from "react-redux";
 import Image from "next/image";
 import { usePreviewSlider } from "@/app/context/PreviewSliderContext";
 import { resetQuickView } from "@/redux/features/quickView-slice";
 import { updateproductDetails } from "@/redux/features/product-details";
-import { addItemToCartAsync } from "@/redux/features/cart-slice";
 import { getToken } from "@/service/map/lib/token";
 
 

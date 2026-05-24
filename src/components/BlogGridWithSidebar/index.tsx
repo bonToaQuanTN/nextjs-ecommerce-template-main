@@ -1,253 +1,419 @@
-import React from "react";
+"use client";
+
+import React, { useEffect, useState, useCallback } from "react";
 import Breadcrumb from "../Common/Breadcrumb";
-import BlogItem from "../Blog/BlogItem";
-import blogData from "../BlogGrid/blogData"; 
-import SearchForm from "../Blog/SearchForm"; 
-import LatestPosts from "../Blog/LatestPosts";
-import LatestProducts from "../Blog/LatestProducts";
-import Categories from "../Blog/Categories";
-import { getServerSideProducts as shopData } from "../Shop/shopData"; 
- 
-const BlogGridWithSidebar = () => {
-  const categories = [
-    {
-      name: "Desktop",
-      products: 10,
-    },
-    {
-      name: "Laptop",
-      products: 12,
-    },
-    {
-      name: "Monitor",
-      products: 30,
-    },
-    {
-      name: "UPS",
-      products: 23,
-    },
-    {
-      name: "Phone",
-      products: 10,
-    },
-    {
-      name: "Watch",
-      products: 13,
-    },
-  ];
+import Image from "next/image";
+import Link from "next/link";
+import {
+  productApi,
+  inventoryApi,
+  warehouseApi,
+  categoryApi,
+  type Product,
+  type Inventory,
+  type Warehouse,
+  type Category,
+} from "@/service/map/inventory/inventory";
+
+// ─── Helpers ───
+const getTotalStock = (productId: string, inventories: Inventory[]): number =>
+  inventories
+    .filter((inv) => inv.productId === productId)
+    .reduce((sum, inv) => sum + inv.quantity, 0);
+
+// ─── Component ───
+const InventoryDashboard = () => {
+  // --- Data state ---
+  const [products, setProducts] = useState<Product[]>([]);
+  const [inventories, setInventories] = useState<Inventory[]>([]);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  // --- UI state ---
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // --- Pagination ---
+  const [productPage, setProductPage] = useState(1);
+  const [productLastPage, setProductLastPage] = useState(1);
+
+  // --- Search ---
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeSearch, setActiveSearch] = useState("");
+
+  // ─── Fetchers ───
+  const fetchProducts = useCallback(async (page: number, search?: string) => {
+    try {
+      const res = search?.trim()
+        ? await productApi.search(search, page)
+        : await productApi.getAll(page);
+
+      setProducts(res.data || []);
+      setProductLastPage(res.lastPage || 1);
+    } catch (err) {
+      console.error("fetchProducts failed:", err);
+      throw err;
+    }
+  }, []);
+
+  const fetchInventories = useCallback(async () => {
+    try {
+      const all = await inventoryApi.getAllFlatten();
+      setInventories(all);
+    } catch (err) {
+      console.error("fetchInventories failed:", err);
+      // Non-critical: stock will show 0
+      setInventories([]);
+    }
+  }, []);
+
+  const fetchWarehouses = useCallback(async () => {
+    try {
+      const all = await warehouseApi.getAllFlatten();
+      setWarehouses(all);
+    } catch (err) {
+      console.error("fetchWarehouses failed:", err);
+      setWarehouses([]);
+    }
+  }, []);
+
+  const fetchCategories = useCallback(async () => {
+    try {
+      const all = await categoryApi.getAllFlatten();
+      setCategories(all);
+    } catch (err) {
+      console.error("fetchCategories failed:", err);
+      setCategories([]);
+    }
+  }, []);
+
+  // ─── Initial load ───
+  useEffect(() => {
+    const loadAll = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        await Promise.all([
+          fetchProducts(1),
+          fetchInventories(),
+          fetchWarehouses(),
+          fetchCategories(),
+        ]);
+      } catch {
+        setError("Không thể tải dữ liệu. Vui lòng thử lại sau.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadAll();
+  }, [fetchProducts, fetchInventories, fetchWarehouses, fetchCategories]);
+
+  // ─── Page change ───
+  const handlePageChange = async (newPage: number) => {
+    setProductPage(newPage);
+    try {
+      await fetchProducts(newPage, activeSearch);
+    } catch {
+      setError("Không thể tải trang.");
+    }
+  };
+
+  // ─── Search ───
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setActiveSearch(searchQuery);
+    setProductPage(1);
+    try {
+      await fetchProducts(1, searchQuery);
+    } catch {
+      setError("Tìm kiếm thất bại.");
+    }
+  };
+
+  const handleClearSearch = async () => {
+    setSearchQuery("");
+    setActiveSearch("");
+    setProductPage(1);
+    try {
+      await fetchProducts(1);
+    } catch {
+      setError("Không thể tải sản phẩm.");
+    }
+  };
+
+  // ─── Loading / Error ───
+  if (loading) {
+    return (
+      <>
+        <Breadcrumb
+          title={"Quản lý Kho & Sản phẩm"}
+          pages={["Dashboard", "Sản phẩm"]}
+        />
+        <section className="overflow-hidden py-20 bg-gray-2">
+          <div className="max-w-[1170px] w-full mx-auto px-4 sm:px-8 xl:px-0 flex items-center justify-center min-h-[400px]">
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-10 h-10 border-4 border-blue border-t-transparent rounded-full animate-spin" />
+              <p className="text-gray-500">Đang tải dữ liệu...</p>
+            </div>
+          </div>
+        </section>
+      </>
+    );
+  }
+
+  if (error) {
+    return (
+      <>
+        <Breadcrumb
+          title={"Quản lý Kho & Sản phẩm"}
+          pages={["Dashboard", "Sản phẩm"]}
+        />
+        <section className="overflow-hidden py-20 bg-gray-2">
+          <div className="max-w-[1170px] w-full mx-auto px-4 sm:px-8 xl:px-0 flex items-center justify-center min-h-[400px]">
+            <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center max-w-md">
+              <p className="text-red-600 mb-4">{error}</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="bg-blue text-white py-2 px-6 rounded-md hover:bg-opacity-90"
+              >
+                Thử lại
+              </button>
+            </div>
+          </div>
+        </section>
+      </>
+    );
+  }
 
   return (
     <>
-      <Breadcrumb title={"Blog Grid Sidebar"} pages={["blog grid sidebar"]} />
+      <Breadcrumb
+        title={"Quản lý Kho & Sản phẩm"}
+        pages={["Dashboard", "Sản phẩm"]}
+      />
 
       <section className="overflow-hidden py-20 bg-gray-2">
         <div className="max-w-[1170px] w-full mx-auto px-4 sm:px-8 xl:px-0">
           <div className="flex flex-col lg:flex-row gap-7.5">
-            {/* <!-- blog grid --> */}
+            {/* ── Product Grid ── */}
             <div className="lg:max-w-[770px] w-full">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-10 gap-x-7.5">
-                {blogData.map((blog, key) => (
-                  <BlogItem blog={blog} key={key} />
-                ))}
-              </div>
-
-              {/* <!-- Blog Pagination Start --> */}
-              <div className="flex justify-center mt-15">
-                <div className="bg-white shadow-1 rounded-md p-2">
-                  <ul className="flex items-center">
-                    <li>
+              {/* Header + Search */}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                <h3 className="text-xl font-semibold text-dark">
+                  Danh sách sản phẩm
+                </h3>
+                <div className="flex items-center gap-3">
+                  {/* Search bar */}
+                  <form onSubmit={handleSearch} className="flex gap-2">
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Tìm sản phẩm..."
+                      className="border border-gray-3 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-blue"
+                    />
+                    <button
+                      type="submit"
+                      className="bg-gray-2 text-dark py-2 px-3 rounded-md hover:bg-gray-3 text-sm"
+                    >
+                      🔍
+                    </button>
+                    {activeSearch && (
                       <button
-                        id="paginationLeft"
-                        aria-label="button for pagination left"
                         type="button"
-                        disabled
-                        className="flex items-center justify-center w-8 h-9 ease-out duration-200 rounded-[3px disabled:text-gray-4"
+                        onClick={handleClearSearch}
+                        className="text-gray-400 hover:text-red-500 text-sm"
                       >
-                        <svg
-                          className="fill-current"
-                          width="18"
-                          height="18"
-                          viewBox="0 0 18 18"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            d="M12.1782 16.1156C12.0095 16.1156 11.8407 16.0594 11.7282 15.9187L5.37197 9.45C5.11885 9.19687 5.11885 8.80312 5.37197 8.55L11.7282 2.08125C11.9813 1.82812 12.3751 1.82812 12.6282 2.08125C12.8813 2.33437 12.8813 2.72812 12.6282 2.98125L6.72197 9L12.6563 15.0187C12.9095 15.2719 12.9095 15.6656 12.6563 15.9187C12.4876 16.0312 12.347 16.1156 12.1782 16.1156Z"
-                            fill=""
-                          />
-                        </svg>
+                        ✕
                       </button>
-                    </li>
-
-                    <li>
-                      <a
-                        href="#"
-                        className="flex py-1.5 px-3.5 duration-200 rounded-[3px] bg-blue text-white hover:text-white hover:bg-blue"
-                      >
-                        1
-                      </a>
-                    </li>
-
-                    <li>
-                      <a
-                        href="#"
-                        className="flex py-1.5 px-3.5 duration-200 rounded-[3px] hover:text-white hover:bg-blue"
-                      >
-                        2
-                      </a>
-                    </li>
-
-                    <li>
-                      <a
-                        href="#"
-                        className="flex py-1.5 px-3.5 duration-200 rounded-[3px] hover:text-white hover:bg-blue"
-                      >
-                        3
-                      </a>
-                    </li>
-
-                    <li>
-                      <a
-                        href="#"
-                        className="flex py-1.5 px-3.5 duration-200 rounded-[3px] hover:text-white hover:bg-blue"
-                      >
-                        4
-                      </a>
-                    </li>
-
-                    <li>
-                      <a
-                        href="#"
-                        className="flex py-1.5 px-3.5 duration-200 rounded-[3px] hover:text-white hover:bg-blue"
-                      >
-                        5
-                      </a>
-                    </li>
-
-                    <li>
-                      <a
-                        href="#"
-                        className="flex py-1.5 px-3.5 duration-200 rounded-[3px] hover:text-white hover:bg-blue"
-                      >
-                        ...
-                      </a>
-                    </li>
-
-                    <li>
-                      <a
-                        href="#"
-                        className="flex py-1.5 px-3.5 duration-200 rounded-[3px] hover:text-white hover:bg-blue"
-                      >
-                        10
-                      </a>
-                    </li>
-
-                    <li>
-                      <button
-                        id="paginationLeft"
-                        aria-label="button for pagination left"
-                        type="button"
-                        className="flex items-center justify-center w-8 h-9 ease-out duration-200 rounded-[3px] hover:text-white hover:bg-blue disabled:text-gray-4"
-                      >
-                        <svg
-                          className="fill-current"
-                          width="18"
-                          height="18"
-                          viewBox="0 0 18 18"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            d="M5.82197 16.1156C5.65322 16.1156 5.5126 16.0594 5.37197 15.9469C5.11885 15.6937 5.11885 15.3 5.37197 15.0469L11.2782 9L5.37197 2.98125C5.11885 2.72812 5.11885 2.33437 5.37197 2.08125C5.6251 1.82812 6.01885 1.82812 6.27197 2.08125L12.6282 8.55C12.8813 8.80312 12.8813 9.19687 12.6282 9.45L6.27197 15.9187C6.15947 16.0312 5.99072 16.1156 5.82197 16.1156Z"
-                            fill=""
-                          />
-                        </svg>
-                      </button>
-                    </li>
-                  </ul>
+                    )}
+                  </form>
+                  <button className="bg-blue text-white py-2 px-4 rounded-md hover:bg-opacity-90">
+                    + Thêm sản phẩm
+                  </button>
                 </div>
               </div>
-              {/* <!-- Blog Pagination End --> */}
+
+              {activeSearch && (
+                <p className="text-sm text-gray-500 mb-4">
+                  Kết quả tìm kiếm cho:{" "}
+                  <span className="font-medium text-dark">
+                    &ldquo;{activeSearch}&rdquo;
+                  </span>
+                </p>
+              )}
+
+              {/* Product Cards */}
+              {products.length === 0 ? (
+                <div className="bg-white rounded-xl shadow-1 p-10 text-center">
+                  <p className="text-gray-400 text-lg">Không tìm thấy sản phẩm nào.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-10 gap-x-7.5">
+                  {products.map((product) => {
+                    const totalStock = getTotalStock(product.id, inventories);
+
+                    return (
+                      <div
+                        key={product.id}
+                        className="bg-white rounded-xl shadow-1 overflow-hidden group"
+                      >
+                        <div className="relative w-full h-60 overflow-hidden">
+                          <Image
+                            src={product.thumbnail || "/images/products/default.jpg"}
+                            alt={product.name}
+                            layout="fill"
+                            objectFit="cover"
+                            className="group-hover:scale-105 transition-transform duration-300"
+                          />
+                        </div>
+                        <div className="p-5">
+                          <h4 className="font-medium text-dark text-lg mb-2 hover:text-blue">
+                            <Link href={`/admin/products/${product.id}`}>
+                              {product.name}
+                            </Link>
+                          </h4>
+                          <p className="text-gray-500 text-sm mb-3 line-clamp-2">
+                            {product.description}
+                          </p>
+                          <div className="flex justify-between items-center">
+                            <span className="text-blue font-bold text-xl">
+                              ${product.price}
+                            </span>
+                            <span
+                              className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                totalStock > 20
+                                  ? "bg-green-100 text-green-600"
+                                  : totalStock > 0
+                                  ? "bg-yellow-100 text-yellow-600"
+                                  : "bg-red-100 text-red-600"
+                              }`}
+                            >
+                              Còn hàng: {totalStock} {product.unit}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Pagination */}
+              {productLastPage > 1 && (
+                <div className="flex justify-center items-center gap-2 mt-10">
+                  <button
+                    onClick={() => handlePageChange(productPage - 1)}
+                    disabled={productPage <= 1}
+                    className="px-4 py-2 rounded-md border border-gray-3 text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-2"
+                  >
+                    ← Trước
+                  </button>
+
+                  {Array.from({ length: productLastPage }, (_, i) => i + 1)
+                    .filter(
+                      (p) =>
+                        p === 1 ||
+                        p === productLastPage ||
+                        Math.abs(p - productPage) <= 1
+                    )
+                    .reduce<(number | string)[]>((acc, p, idx, arr) => {
+                      if (idx > 0 && p - (arr[idx - 1] as number) > 1) {
+                        acc.push("...");
+                      }
+                      acc.push(p);
+                      return acc;
+                    }, [])
+                    .map((item, idx) =>
+                      typeof item === "string" ? (
+                        <span key={`dots-${idx}`} className="px-2 text-gray-400">
+                          ...
+                        </span>
+                      ) : (
+                        <button
+                          key={item}
+                          onClick={() => handlePageChange(item)}
+                          className={`px-3 py-2 rounded-md text-sm ${
+                            item === productPage
+                              ? "bg-blue text-white"
+                              : "border border-gray-3 hover:bg-gray-2"
+                          }`}
+                        >
+                          {item}
+                        </button>
+                      )
+                    )}
+
+                  <button
+                    onClick={() => handlePageChange(productPage + 1)}
+                    disabled={productPage >= productLastPage}
+                    className="px-4 py-2 rounded-md border border-gray-3 text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-2"
+                  >
+                    Sau →
+                  </button>
+                </div>
+              )}
             </div>
 
-            {/* <!-- blog sidebar --> */}
+            {/* ── Sidebar ── */}
             <div className="lg:max-w-[370px] w-full">
-              {/* <!-- search box --> */}
-              <SearchForm />
+              {/* Warehouse Box */}
+              <div className="shadow-1 bg-white rounded-xl">
+                <div className="px-4 sm:px-6 py-4.5 border-b border-gray-3">
+                  <h2 className="font-medium text-lg text-dark">Kho hàng</h2>
+                </div>
+                <div className="p-4 sm:p-6">
+                  {warehouses.length === 0 ? (
+                    <p className="text-sm text-gray-400">
+                      Không có kho hàng nào.
+                    </p>
+                  ) : (
+                    <div className="flex flex-col gap-3">
+                      {warehouses.map((wh) => (
+                        <button
+                          key={wh.id}
+                          className="group flex items-center justify-between ease-out duration-200 text-dark hover:text-blue text-left"
+                        >
+                          {wh.name}
+                          <span className="text-xs text-gray-4 ml-2 truncate max-w-[150px]">
+                            {wh.address}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
 
-              {/* <!-- Recent Posts box --> */}
-              <LatestPosts blogs={blogData} />
-
-              {/* <!-- Latest Products box --> */}
-              <LatestProducts products={shopData} />
-
-              {/* <!-- Popular Category box --> */}
-              <Categories categories={categories} />
-
-              {/* <!-- Tags box --> */}
+              {/* Category Box */}
               <div className="shadow-1 bg-white rounded-xl mt-7.5">
                 <div className="px-4 sm:px-6 py-4.5 border-b border-gray-3">
-                  <h2 className="font-medium text-lg text-dark">Tags</h2>
+                  <h2 className="font-medium text-lg text-dark">
+                    Danh mục sản phẩm
+                  </h2>
                 </div>
-
                 <div className="p-4 sm:p-6">
-                  <div className="flex flex-wrap gap-3.5">
-                    <a
-                      className="inline-flex hover:text-white border border-gray-3 py-2 px-4 rounded-md ease-out duration-200 hover:bg-blue hover:border-blue"
-                      href="#"
-                    >
-                      Desktop
-                    </a>
-
-                    <a
-                      className="inline-flex hover:text-white border border-gray-3 py-2 px-4 rounded-md ease-out duration-200 hover:bg-blue hover:border-blue"
-                      href="#"
-                    >
-                      Macbook
-                    </a>
-
-                    <a
-                      className="inline-flex hover:text-white border border-gray-3 py-2 px-4 rounded-md ease-out duration-200 hover:bg-blue hover:border-blue"
-                      href="#"
-                    >
-                      PC
-                    </a>
-
-                    <a
-                      className="inline-flex hover:text-white border border-gray-3 py-2 px-4 rounded-md ease-out duration-200 hover:bg-blue hover:border-blue"
-                      href="#"
-                    >
-                      Watch
-                    </a>
-
-                    <a
-                      className="inline-flex hover:text-white border border-gray-3 py-2 px-4 rounded-md ease-out duration-200 hover:bg-blue hover:border-blue"
-                      href="#"
-                    >
-                      USB Cable
-                    </a>
-
-                    <a
-                      className="inline-flex hover:text-white border border-gray-3 py-2 px-4 rounded-md ease-out duration-200 hover:bg-blue hover:border-blue"
-                      href="#"
-                    >
-                      Mouse
-                    </a>
-
-                    <a
-                      className="inline-flex hover:text-white border border-gray-3 py-2 px-4 rounded-md ease-out duration-200 hover:bg-blue hover:border-blue"
-                      href="#"
-                    >
-                      Windows PC
-                    </a>
-
-                    <a
-                      className="inline-flex hover:text-white border border-gray-3 py-2 px-4 rounded-md ease-out duration-200 hover:bg-blue hover:border-blue"
-                      href="#"
-                    >
-                      Monitor
-                    </a>
-                  </div>
+                  {categories.length === 0 ? (
+                    <p className="text-sm text-gray-400">
+                      Không có danh mục nào.
+                    </p>
+                  ) : (
+                    <div className="flex flex-col gap-3">
+                      {categories.map((cat) => (
+                        <button
+                          key={cat.id}
+                          className="group flex items-center justify-between ease-out duration-200 text-dark hover:text-blue"
+                        >
+                          {cat.name}
+                          {cat.products !== undefined && (
+                            <span className="inline-flex rounded-[30px] bg-gray-2 text-custom-xs px-1.5 ease-out duration-200 group-hover:text-white group-hover:bg-blue">
+                              {cat.products}
+                            </span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -258,4 +424,4 @@ const BlogGridWithSidebar = () => {
   );
 };
 
-export default BlogGridWithSidebar;
+export default InventoryDashboard;

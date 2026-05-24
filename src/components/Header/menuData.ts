@@ -75,4 +75,36 @@ export const menuData: Menu[] = [
       },
     ],
   },
+  {
+    id: 7,
+    title: "Quản lý",
+    newTab: false,
+    path: "/",
+    submenu: [
+      {
+        id: 72,
+        title: "Người dùng hệ thống",
+        newTab: false,
+        path: "/blogs/blog-grid",
+      },
+      {
+        id: 74,
+        title: "Quyền người dùng",
+        newTab: false,
+        path: "/blogs/blog-details",
+      },
+      {
+        id: 71,
+        title: "Tổng quan kho",
+        newTab: false,
+        path: "/blogs/blog-grid-with-sidebar",
+      },
+      {
+        id: 73,
+        title: "Chi tiết kho",
+        newTab: false,
+        path: "/blogs/blog-details-with-sidebar",
+      },
+    ],
+  },
 ];
