@@ -3,7 +3,7 @@ import React from "react";
 import { Product } from "@/types/product";
 import { useModalContext } from "@/app/context/QuickViewModalContext";
 import { updateQuickView } from "@/redux/features/quickView-slice";
-import { addItemToCart } from "@/redux/features/cart-slice";
+import { addItemToCart } from "@/redux/features/cartItem-slide";
 import { addItemToWishlist } from "@/redux/features/wishlist-slice";
 import { useDispatch } from "react-redux";
 import { AppDispatch } from "@/redux/store";

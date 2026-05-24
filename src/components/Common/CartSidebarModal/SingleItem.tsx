@@ -109,7 +109,6 @@ const SingleItem = ({ item }: { item: CartItemLocal }) => {
         <p className="text-dark font-medium">${subtotal.toFixed(2)}</p>
       </div>
 
-      {/* Nút Xóa */}
       <div className="min-w-[50px] flex justify-end">
         <button
           onClick={handleRemoveFromCart}

@@ -2,17 +2,14 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
 // ─── Auth helper ───
 const getAuthHeaders = (): HeadersInit => {
-  const token =
-    typeof window !== "undefined"
-      ? localStorage.getItem("access_token") || ""
-      : "";
+  const token = typeof window !== "undefined"
+      ? localStorage.getItem("access_token") || "": "";
 
   const headers: HeadersInit = { "Content-Type": "application/json" };
   if (token) headers["Authorization"] = `Bearer ${token}`;
   return headers;
 };
 
-// ─── Generic fetch ───
 const apiFetch = async <T = any>(
   endpoint: string,
   options?: RequestInit
@@ -27,13 +24,10 @@ const apiFetch = async <T = any>(
     throw new Error(`API ${res.status}: ${message}`);
   }
 
-  // 204 No Content
   if (res.status === 204) return undefined as T;
 
   return res.json();
 };
-
-// ─── Types ───
 export interface Product {
   id: string;
   name: string;
@@ -71,7 +65,6 @@ export interface PaginatedResponse<T> {
   perPage?: number;
 }
 
-// ─── Product APIs (Public) ───
 export const productApi = {
   getAll: (page = 1) =>
     apiFetch<PaginatedResponse<Product>>(`/products?page=${page}`),
@@ -89,12 +82,9 @@ export const productApi = {
   getById: (id: string) => apiFetch<Product>(`/products/${id}`),
 };
 
-// ─── Inventory APIs (Auth required) ───
 export const inventoryApi = {
   getAll: (page = 1) =>
     apiFetch<PaginatedResponse<Inventory>>(`/inventories?page=${page}`),
-
-  /** Fetch all inventory pages up to `maxPages` safety limit */
   getAllFlatten: async (maxPages = 20): Promise<Inventory[]> => {
     const all: Inventory[] = [];
     let page = 1;
@@ -110,14 +100,12 @@ export const inventoryApi = {
     return all;
   },
 
-  create: (dto: Partial<Inventory>) =>
-    apiFetch<Inventory>("/inventories", {
+  create: (dto: Partial<Inventory>) => apiFetch<Inventory>("/inventories", {
       method: "POST",
       body: JSON.stringify(dto),
     }),
 
-  update: (id: string, dto: Partial<Inventory>) =>
-    apiFetch<Inventory>(`/inventories/${id}`, {
+  update: (id: string, dto: Partial<Inventory>) =>apiFetch<Inventory>(`/inventories/${id}`, {
       method: "PUT",
       body: JSON.stringify(dto),
     }),
@@ -126,7 +114,6 @@ export const inventoryApi = {
     apiFetch<void>(`/inventories/${id}`, { method: "DELETE" }),
 };
 
-// ─── Warehouse APIs (Auth required) ───
 export const warehouseApi = {
   getAll: (page = 1) =>
     apiFetch<PaginatedResponse<Warehouse>>(`/warehouses?page=${page}`),
@@ -164,12 +151,8 @@ export const warehouseApi = {
     apiFetch<void>(`/warehouses/${id}`, { method: "DELETE" }),
 };
 
-// ─── Category APIs ───
-// NOTE: No CategoryController was provided — adjust endpoint when available
 export const categoryApi = {
-  getAll: (page = 1) =>
-    apiFetch<PaginatedResponse<Category>>(`/categories?page=${page}`),
-
+  getAll: (page = 1) => apiFetch<PaginatedResponse<Category>>(`/categories?page=${page}`),
   getAllFlatten: async (maxPages = 20): Promise<Category[]> => {
     const all: Category[] = [];
     let page = 1;

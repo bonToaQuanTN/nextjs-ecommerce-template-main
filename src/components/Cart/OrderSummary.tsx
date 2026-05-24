@@ -1,23 +1,23 @@
 import React, { useState } from "react";
 import { useAppSelector } from "@/redux/store";
 import { useRouter } from "next/navigation";
+import { selectTotalPrice } from "@/redux/features/cartItem-slide";
+import { getToken } from "@/service/map/lib/token";
 
 const OrderSummary = () => {
-  const cartItems = useAppSelector((state) => state.cartReducer.items);
+  const cartItems = useAppSelector((state) => state.cart?.cartItems || []);
+  const totalPrice = useAppSelector(selectTotalPrice);
+
   const [isProcessing, setIsProcessing] = useState(false);
   const router = useRouter();
-
-  const totalPrice = cartItems.reduce((total, item) => {
-    const price = item.discountedPrice || item.price || 0;
-    return total + (price * item.quantity);
-  }, 0);
 
   const handleCheckout = async () => {
     if (cartItems.length === 0) return;
     
     try {
       setIsProcessing(true);
-      const token = localStorage.getItem('access_token');
+      const token = getToken();
+      
       if (!token) {
         alert("Vui lòng đăng nhập trước khi thanh toán!");
         router.push('/signin');
@@ -41,23 +41,30 @@ const OrderSummary = () => {
       }
 
       const orderData = await orderRes.json();
-      const realOrderId = orderData.id; // LẤY ID ĐƠN HÀNG THẬT TỪ DATABASE
-      const stripeRes = await fetch('/api/payment/checkout', {
+      const realOrderId = orderData?.id || orderData?.data?.id;
+
+      if (!realOrderId) {
+        throw new Error("Không lấy được ID đơn hàng từ server");
+      }
+      const stripeRes = await fetch('/api/stripe/checkout', {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`
         },
-        body: JSON.stringify({ id: realOrderId })
+        body: JSON.stringify({ id: realOrderId }) 
       });
 
       if (!stripeRes.ok) {
-        throw new Error("Lỗi khi kết nối với cổng thanh toán Stripe");
+        const errText = await stripeRes.text();
+        throw new Error(`Lỗi khi kết nối cổng thanh toán: ${errText}`);
       }
 
       const stripeData = await stripeRes.json();
-      if (stripeData.url) {
-        window.location.href = stripeData.url;
+      const checkoutUrl = stripeData?.url || stripeData?.data?.url;
+
+      if (checkoutUrl) {
+        window.location.href = checkoutUrl;
       } else {
         throw new Error("Không nhận được link thanh toán từ Stripe");
       }
@@ -84,7 +91,9 @@ const OrderSummary = () => {
           </div>
 
           {cartItems.map((item, key) => {
-            const currentPrice = item.discountedPrice || item.price || 0;
+            const currentPrice = Number(item.discountedPrice ?? item.price ?? 0);
+            const quantity = Number(item.quantity || 1);
+            
             return (
               <div key={key} className="flex items-center justify-between py-5 border-b border-gray-3">
                 <div>
@@ -92,7 +101,7 @@ const OrderSummary = () => {
                 </div>
                 <div>
                   <p className="text-dark text-right">
-                    ${(currentPrice * item.quantity).toFixed(2)}
+                    ${(currentPrice * quantity).toFixed(2)}
                   </p>
                 </div>
               </div>

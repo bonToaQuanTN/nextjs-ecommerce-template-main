@@ -4,16 +4,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import Breadcrumb from "../Common/Breadcrumb";
 import Image from "next/image";
 import Link from "next/link";
-import {
-  productApi,
-  inventoryApi,
-  warehouseApi,
-  categoryApi,
-  type Product,
-  type Inventory,
-  type Warehouse,
-  type Category,
-} from "@/service/map/inventory/inventory";
+import {  productApi,  inventoryApi,  warehouseApi,  categoryApi,  type Product,  type Inventory,  type Warehouse,  type Category,} from "@/service/map/inventory/inventory";
 
 // ─── Helpers ───
 const getTotalStock = (productId: string, inventories: Inventory[]): number =>

@@ -12,8 +12,8 @@ const SingleItem = ({ item }: { item: CartItemLocal }) => {
   const dispatch = useDispatch<AppDispatch>();
   const [isUpdating, setIsUpdating] = useState(false);
 
-  const currentPrice = item.discountedPrice ?? item.price ?? 0;
-  const subtotal = currentPrice * item.quantity;
+const currentPrice = Number(item.discountedPrice ?? item.price ?? 0);
+const subtotal = currentPrice * item.quantity;
 
   // ======== XÓA SẢN PHẨM QUA THUNK ========
   const handleRemoveFromCart = async () => {

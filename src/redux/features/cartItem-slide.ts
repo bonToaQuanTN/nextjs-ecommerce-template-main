@@ -11,9 +11,10 @@ const getAuthHeaders = (json = true) => {
   if (json) headers["Content-Type"] = "application/json";
   return headers;
 };
+
 export type CartItemLocal = Product & {
   quantity: number;
-  cartItemId?: string; 
+  cartItemId?: string;
 };
 
 interface CartState {
@@ -44,18 +45,40 @@ export const fetchCartAsync = createAsyncThunk(
       if (!res.ok) throw new Error(`Failed to fetch cart: ${res.status}`);
 
       const data = await res.json();
-      
-      // ✅ MAP dữ liệu backend sang CartItemLocal để UI hiển thị
-      const mappedItems: CartItemLocal[] = (data.cartItems || []).map((ci: any) => ({
-        id: ci.productId, 
-        cartItemId: ci.id, 
-        title: ci.product?.title || "Sản phẩm",
-        price: ci.product?.price || ci.price,
-        discountedPrice: ci.product?.discountedPrice || null,
-        imgs: ci.product?.imgs || { previews: [] },
-        quantity: ci.quantity,
-        reviews: ci.product?.reviews || 0,
-      }));
+      console.log("🔍 Cart API Response:", JSON.stringify(data, null, 2));
+
+      const mappedItems: CartItemLocal[] = (data.cartItems || []).map((ci: any) => {
+        const product = ci.product || ci.Product || {};
+
+        let imageSrc = "/images/placeholder.jpg";
+        if (product.imgs?.previews?.[0]) {
+          imageSrc = product.imgs.previews[0];
+        } else if (product.imgs?.thumbnails?.[0]) {
+          imageSrc = product.imgs.thumbnails[0];
+        } else if (product.thumbnail) {
+          imageSrc = product.thumbnail;
+        } else if (product.image) {
+          imageSrc = product.image;
+        } else if (product.img) {
+          imageSrc = product.img;
+        }
+
+        return {
+          id: ci.productId || ci.product_id,
+          cartItemId: ci.id,
+          title: product.name || product.title || "Sản phẩm",
+          price: Number(product.price || ci.price || 0),
+          discountedPrice: product.discountedPrice != null 
+            ? Number(product.discountedPrice) 
+            : (product.salePrice != null ? Number(product.salePrice) : null),
+          imgs: {
+            previews: [imageSrc],
+            thumbnails: [imageSrc],
+          },
+          quantity: Number(ci.quantity) || 1,
+          reviews: Number(product.reviews || 0),
+        };
+      });
 
       return {
         cartItems: mappedItems,
@@ -67,8 +90,7 @@ export const fetchCartAsync = createAsyncThunk(
   }
 );
 
-export const addItemToCartAsync = createAsyncThunk(
-  "cart/addItemToCartAsync",
+export const addItemToCartAsync = createAsyncThunk("cart/addItemToCartAsync",
   async (payload: { item: Product; quantity: number }, thunkAPI) => {
     try {
       const token = getToken();
@@ -76,7 +98,6 @@ export const addItemToCartAsync = createAsyncThunk(
 
       let realCartId = null;
 
-      // Bước 1: Lấy cartId từ /carts/my-cart
       const cartRes = await fetch(`${API_BASE}/carts/my-cart`, {
         headers: getAuthHeaders(false),
       });
@@ -88,6 +109,7 @@ export const addItemToCartAsync = createAsyncThunk(
         const errText = await cartRes.text();
         throw new Error(`Không thể lấy thông tin giỏ hàng (${cartRes.status}): ${errText}`);
       }
+
       if (!realCartId) {
         const createCartRes = await fetch(`${API_BASE}/carts`, {
           method: "POST",
@@ -100,10 +122,11 @@ export const addItemToCartAsync = createAsyncThunk(
         }
 
         const newCartData = await createCartRes.json();
-        realCartId = newCartData?.id || newCartData?.data?.id; 
+        realCartId = newCartData?.id || newCartData?.data?.id;
       }
 
       if (!realCartId) throw new Error("Lỗi hệ thống: Không xác định được ID giỏ hàng.");
+
       const res = await fetch(`${API_BASE}/cart-items`, {
         method: "POST",
         headers: getAuthHeaders(true),
@@ -121,7 +144,8 @@ export const addItemToCartAsync = createAsyncThunk(
       }
 
       const serverCartItem = await res.json();
-      const serverItemData = serverCartItem?.data || serverCartItem; 
+      const serverItemData = serverCartItem?.data || serverCartItem;
+
       return {
         cartId: realCartId,
         serverCartItem: serverItemData,
@@ -129,6 +153,10 @@ export const addItemToCartAsync = createAsyncThunk(
           ...payload.item,
           quantity: payload.quantity,
           cartItemId: serverItemData.id,
+          imgs: payload.item.imgs || {
+            previews: [payload.item.img || "/images/placeholder.jpg"],
+            thumbnails: [payload.item.img || "/images/placeholder.jpg"],
+          },
         },
       };
     } catch (error: any) {
@@ -140,10 +168,7 @@ export const addItemToCartAsync = createAsyncThunk(
 
 export const updateCartItemAsync = createAsyncThunk(
   "cart/updateCartItemAsync",
-  async (
-    payload: { cartItemId: string; quantity: number },
-    thunkAPI
-  ) => {
+  async (payload: { cartItemId: string; quantity: number }, thunkAPI) => {
     try {
       const res = await fetch(`${API_BASE}/cart-items/${payload.cartItemId}`, {
         method: "PUT",
@@ -154,13 +179,15 @@ export const updateCartItemAsync = createAsyncThunk(
       if (!res.ok) throw new Error(`Lỗi cập nhật: ${res.status}`);
 
       const data = await res.json();
-      return { cartItemId: payload.cartItemId, quantity: data.quantity };
+      return { cartItemId: payload.cartItemId, quantity: Number(data.quantity) };
     } catch (error: any) {
       return thunkAPI.rejectWithValue(error.message);
     }
   }
 );
-export const removeCartItemAsync = createAsyncThunk("cart/removeCartItemAsync",
+
+export const removeCartItemAsync = createAsyncThunk(
+  "cart/removeCartItemAsync",
   async (cartItemId: string, thunkAPI) => {
     try {
       const res = await fetch(`${API_BASE}/cart-items/${cartItemId}`, {
@@ -204,7 +231,6 @@ const cartSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-    
       .addCase(fetchCartAsync.fulfilled, (state, action) => {
         state.cartId = action.payload.cartId;
         state.cartItems = action.payload.cartItems;
@@ -232,13 +258,11 @@ const cartSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
-
       .addCase(updateCartItemAsync.fulfilled, (state, action) => {
         const { cartItemId, quantity } = action.payload;
         const item = state.cartItems.find((i) => i.cartItemId === cartItemId);
         if (item) item.quantity = quantity;
       })
-
       .addCase(removeCartItemAsync.fulfilled, (state, action) => {
         state.cartItems = state.cartItems.filter(
           (item) => item.cartItemId !== action.payload
@@ -247,17 +271,15 @@ const cartSlice = createSlice({
   },
 });
 
+// ✅ SELECTOR có fallback an toàn chống undefined và ép kiểu Number
 export const selectTotalPrice = (state: any) => {
-  const items = state.cart?.cartItems || state.cart?.items || [];
-  
+  const items = state.cart?.cartItems || [];
   return items.reduce((total: number, item: CartItemLocal) => {
-    const price = item.discountedPrice ?? item.price ?? 0;
-    return total + price * item.quantity;
+    const price = Number(item.discountedPrice ?? item.price ?? 0);
+    const qty = Number(item.quantity || 0);
+    return total + price * qty;
   }, 0);
 };
 
-
-
-export const { addItemToCart, setCartId, clearCart, clearError } =
-  cartSlice.actions;
+export const { addItemToCart, setCartId, clearCart, clearError } = cartSlice.actions;
 export default cartSlice.reducer;

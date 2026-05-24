@@ -1,68 +1,49 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import Discount from "./Discount";
 import OrderSummary from "./OrderSummary";
-import { useAppSelector } from "@/redux/store";
+import { useAppSelector, useAppDispatch } from "@/redux/store";
 import SingleItem from "./SingleItem";
 import Breadcrumb from "../Common/Breadcrumb";
 import Link from "next/link";
-import { useAppDispatch } from "@/redux/store";
-import { cart } from "@/redux/features/cart-slice";
-import { fetchCartFromDB } from "@/service/map/sale/cart.service";
-import { removeToken,getToken } from "@/service/map/lib/token";
+import { fetchCartAsync } from "@/redux/features/cartItem-slide";
+import { getToken } from "@/service/map/lib/token";
 
 const Cart = () => {
   const dispatch = useAppDispatch();
-  const cartItems = useAppSelector((state) => state.cartReducer.items);
-  const [loading, setLoading] = useState(true);
+
+  // ✅ Sửa selector cho đúng state mới: state.cart.cartItems
+  const cartItems = useAppSelector((state) => state.cart?.cartItems || []);
+  const loading = useAppSelector((state) => state.cart?.loading || false);
 
   useEffect(() => {
-    const loadCart = async () => {
-      const token = getToken();
-      
-      if (!token) {
-        console.warn("Chưa đăng nhập, giữ nguyên giỏ hàng local.");
-        setLoading(false);
-        return; 
-      }
-
-      try {
-        setLoading(true);
-        const dbItems = await fetchCartFromDB();
-
-        if (dbItems.length > 0) {
-          const mappedItems = dbItems.map((item: any) => ({
-            id: item.id,
-            productId: item.productId,
-            title: item.product?.name || "Sản phẩm không tồn tại",
-            price: Number(item.price),
-            discountedPrice: Number(item.price),
-            quantity: item.quantity,
-            imgs: {
-              thumbnails: item.product?.thumbnail ? [item.product.thumbnail] : []
-            }
-          }));
-          dispatch(cart.actions.setCartItems(mappedItems));
-        }
-
-      } catch (error: any) {
-        console.error("Lỗi tải giỏ hàng từ server:", error);
-        if (error.message.includes("401") || error.message.includes("Unauthorized")) {
-          removeToken();
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadCart();
+    const token = getToken();
+    if (token) {
+      // ✅ Gọi thunk fetchCartAsync đã viết sẵn, nó tự gọi GET /carts/my-cart và map dữ liệu
+      dispatch(fetchCartAsync());
+    }
   }, [dispatch]);
+
+  // Loading state
+  if (loading && cartItems.length === 0) {
+    return (
+      <>
+        <section>
+          <Breadcrumb title={"Cart"} pages={["Cart"]} />
+        </section>
+        <div className="text-center py-20">
+          <p className="text-lg text-dark-4">Đang tải giỏ hàng...</p>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
       <section>
         <Breadcrumb title={"Cart"} pages={["Cart"]} />
       </section>
+      
       {cartItems.length > 0 ? (
         <section className="overflow-hidden py-20 bg-gray-2">
           <div className="max-w-[1170px] w-full mx-auto px-4 sm:px-8 xl:px-0">

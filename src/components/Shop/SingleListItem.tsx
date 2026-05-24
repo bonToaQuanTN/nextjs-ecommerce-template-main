@@ -3,7 +3,7 @@ import React from "react";
 import { Product } from "@/types/product";
 import { useModalContext } from "@/app/context/QuickViewModalContext";
 import { updateQuickView } from "@/redux/features/quickView-slice";
-import { addItemToCart } from "@/redux/features/cart-slice";
+import { addItemToCart } from "@/redux/features/cartItem-slide";
 import { addItemToWishlist } from "@/redux/features/wishlist-slice";
 import { useDispatch } from "react-redux";
 import { AppDispatch } from "@/redux/store";
@@ -30,10 +30,6 @@ const SingleListItem = ({ item }: { item: Product }) => {
     <div className="group rounded-lg bg-white shadow-1">
       <div className="flex">
         <div className="shadow-list relative overflow-hidden flex items-center justify-center max-w-[270px] w-full sm:min-h-[270px] p-4">
-          {/* 
-            1. SỬA ẢNH: Thêm dấu '?' chống crash khi Backend chưa có ảnh. 
-            Thêm ảnh dự phòng (placeholder) ở cuối. 
-          */}
           <Image 
             src={item.imgs?.previews?.[0] || "/images/placeholder.png"} 
             alt={item.title || "Product"} 
