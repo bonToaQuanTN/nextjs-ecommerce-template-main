@@ -4,17 +4,13 @@ import Image from "next/image";
 import { mockProducts, mockCategories, mockWarehouses, mockInventory } from "@/service/map/mockdata/mockdata";
 
 const ProductDetails = () => {
-  // Giả lập lấy sản phẩm đầu tiên
   const product = mockProducts[0]; 
-  
-  // Lấy thông tin tồn kho của sản phẩm này
   const stockData = mockInventory
     .filter((inv) => inv.productId === product.id)
     .map((inv) => {
       const warehouse = mockWarehouses.find((wh) => wh.id === inv.warehouseId);
       return { ...inv, warehouseName: warehouse?.name, warehouseAddress: warehouse?.address };
     });
-
   return (
     <>
       <Breadcrumb title={"Chi tiết sản phẩm"} pages={["Sản phẩm", "Chi tiết"]} />

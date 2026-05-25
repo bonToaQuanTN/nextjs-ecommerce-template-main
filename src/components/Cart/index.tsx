@@ -19,12 +19,9 @@ const Cart = () => {
   useEffect(() => {
     const token = getToken();
     if (token) {
-      // ✅ Gọi thunk fetchCartAsync đã viết sẵn, nó tự gọi GET /carts/my-cart và map dữ liệu
       dispatch(fetchCartAsync());
     }
   }, [dispatch]);
-
-  // Loading state
   if (loading && cartItems.length === 0) {
     return (
       <>
