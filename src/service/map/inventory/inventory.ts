@@ -65,21 +65,34 @@ export interface PaginatedResponse<T> {
   perPage?: number;
 }
 
+export interface CreateProductDto {
+  name: string;
+  description?: string;
+  price: number;
+  thumbnail?: string;
+  unit?: string;
+  categoryId?: string;
+}
+
 export const productApi = {
   getAll: (page = 1) =>
     apiFetch<PaginatedResponse<Product>>(`/products?page=${page}`),
 
   getByCategory: (page = 1, categoryId?: string) =>
-    apiFetch<PaginatedResponse<Product>>(
-      `/products?page=${page}${categoryId ? `&categoryId=${categoryId}` : ""}`
-    ),
+    apiFetch<PaginatedResponse<Product>>(`/products?page=${page}${categoryId ? `&categoryId=${categoryId}` : ""}`),
 
   search: (name: string, page = 1) =>
-    apiFetch<PaginatedResponse<Product>>(
-      `/products/search?name=${encodeURIComponent(name)}&page=${page}`
+    apiFetch<PaginatedResponse<Product>>(`/products/search?name=${encodeURIComponent(name)}&page=${page}`
     ),
 
   getById: (id: string) => apiFetch<Product>(`/products/${id}`),
+
+  create: async (dto: CreateProductDto): Promise<Product> => {
+      return apiFetch<Product>("/products", {
+        method: "POST",
+        body: JSON.stringify(dto),
+      });
+    },
 };
 
 export const inventoryApi = {
@@ -112,7 +125,8 @@ export const inventoryApi = {
 
   delete: (id: string) =>
     apiFetch<void>(`/inventories/${id}`, { method: "DELETE" }),
-};
+
+  };
 
 export const warehouseApi = {
   getAll: (page = 1) =>

@@ -4,7 +4,16 @@ import React, { useEffect, useState, useCallback } from "react";
 import Breadcrumb from "../Common/Breadcrumb";
 import Image from "next/image";
 import Link from "next/link";
-import {  productApi,  inventoryApi,  warehouseApi,  categoryApi,  type Product,  type Inventory,  type Warehouse,  type Category,} from "@/service/map/inventory/inventory";
+import {
+  productApi,
+  inventoryApi,
+  warehouseApi,
+  categoryApi,
+  type Product,
+  type Inventory,
+  type Warehouse,
+  type Category,
+} from "@/service/map/inventory/inventory";
 
 // ─── Helpers ───
 const getTotalStock = (productId: string, inventories: Inventory[]): number =>
@@ -53,7 +62,6 @@ const InventoryDashboard = () => {
       setInventories(all);
     } catch (err) {
       console.error("fetchInventories failed:", err);
-      // Non-critical: stock will show 0
       setInventories([]);
     }
   }, []);
@@ -132,7 +140,6 @@ const InventoryDashboard = () => {
     }
   };
 
-  // ─── Loading / Error ───
   if (loading) {
     return (
       <>
@@ -219,9 +226,14 @@ const InventoryDashboard = () => {
                       </button>
                     )}
                   </form>
-                  <button className="bg-blue text-white py-2 px-4 rounded-md hover:bg-opacity-90">
+                  
+                  {/* SỬA Ở ĐÂY: Đổi button thành Link */}
+                  <Link 
+                    href="/blogs/blog-grid-with-sidebar/create" 
+                    className="bg-blue text-white py-2 px-4 rounded-md hover:bg-opacity-90 inline-block text-center whitespace-nowrap"
+                  >
                     + Thêm sản phẩm
-                  </button>
+                  </Link>
                 </div>
               </div>
 
