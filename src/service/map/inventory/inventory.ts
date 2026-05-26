@@ -9,7 +9,7 @@ const getAuthHeaders = (): HeadersInit => {
   return headers;
 };
 
-const apiFetch = async <T = any>(
+export const apiFetch = async <T = any>(
   endpoint: string,
   options?: RequestInit
 ): Promise<T> => {
