@@ -20,16 +20,9 @@ const UserPermissionsForm = () => {
   const [assignedPermissions, setAssignedPermissions] = useState([]); // Mảng chứa các permission ID được chọn
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-
-  // Fetch dữ liệu khi component mount
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Giả lập gọi API (Thay bằng fetch thật của bạn)
-        // const userRes = await fetch(`${API_URL}/users/${id}`);
-        // const userData = await userRes.json();
-        
-        // --- MOCK DATA DỰA TRÊN SCHEMA CỦA BẠN ---
         const userData = {
           id: id,
           firstName: "Jhon",
@@ -61,8 +54,6 @@ const UserPermissionsForm = () => {
         setRoles(rolesData);
         setPermissions(permissionsData);
         setSelectedRole(userData.roleId);
-        
-        // Giả lập quyền hiện có của user (thường lấy từ bảng permission join với role)
         setAssignedPermissions(["perm_1", "perm_2", "perm_3"]); 
 
       } catch (error) {
@@ -75,12 +66,9 @@ const UserPermissionsForm = () => {
     if (id) fetchData();
   }, [id]);
 
-  // Xử lý khi chọn Role (thường khi đổi role, hệ thống tự gán quyền mặc định của role đó)
   const handleRoleChange = (e) => {
     const newRoleId = e.target.value;
     setSelectedRole(newRoleId);
-    
-    // Logic giả lập: Nếu chọn Admin thì có tất cả quyền, chọn Staff thì ít quyền
     if(newRoleId === "role_admin") {
       setAssignedPermissions(permissions.map(p => p.id));
     } else {
@@ -103,19 +91,10 @@ const UserPermissionsForm = () => {
     setSaving(true);
     
     try {
-      // Gọi API cập nhật (PUT /users/:id hoặc API phân quyền riêng)
       console.log("Đang lưu:", { userId: id, roleId: selectedRole, permissions: assignedPermissions });
-      
-      // const res = await fetch(`${API_URL}/users/${id}`, {
-      //   method: 'PUT',
-      //   headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      //   body: JSON.stringify({ roleId: selectedRole, permissions: assignedPermissions })
-      // });
-
-      // Giả lập delay
       await new Promise(resolve => setTimeout(resolve, 1000));
       alert("Cập nhật phân quyền thành công!");
-      router.push("/admin/users"); // Quay lại trang danh sách
+      router.push("/blogs/blog-grid"); // Quay lại trang danh sách
 
     } catch (error) {
       alert("Có lỗi xảy ra khi lưu!");

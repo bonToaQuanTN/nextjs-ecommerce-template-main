@@ -1,6 +1,5 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
-// ─── Auth helper ───
 const getAuthHeaders = (): HeadersInit => {
   const token = typeof window !== "undefined"
       ? localStorage.getItem("access_token") || "": "";
@@ -36,6 +35,7 @@ export interface Product {
   thumbnail: string;
   unit: string;
   categoryId?: string;
+  origin: string;
 }
 
 export interface Inventory {
@@ -80,20 +80,31 @@ export const productApi = {
     apiFetch<PaginatedResponse<Product>>(`/products?page=${page}`),
 
   getByCategory: (page = 1, categoryId?: string) =>
-    apiFetch<PaginatedResponse<Product>>(`/products?page=${page}${categoryId ? `&categoryId=${categoryId}` : ""}`),
-
-  search: (name: string, page = 1) =>
-    apiFetch<PaginatedResponse<Product>>(`/products/search?name=${encodeURIComponent(name)}&page=${page}`
+    apiFetch<PaginatedResponse<Product>>(
+      `/products?page=${page}${categoryId ? `&categoryId=${categoryId}` : ""}`
     ),
 
-  getById: (id: string) => apiFetch<Product>(`/products/${id}`),
+  search: (name: string, page = 1) =>
+    apiFetch<PaginatedResponse<Product>>(
+      `/products/search?name=${encodeURIComponent(name)}&page=${page}`
+    ),
 
-  create: async (dto: CreateProductDto): Promise<Product> => {
-      return apiFetch<Product>("/products", {
-        method: "POST",
-        body: JSON.stringify(dto),
-      });
-    },
+  getById: (id: string) => 
+    apiFetch<Product>(`/products/${id}`),
+
+  create: (dto: CreateProductDto) =>
+    apiFetch<Product>("/products", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(dto),
+    }),
+
+    update: (id: string, dto: Partial<CreateProductDto>) =>
+    apiFetch<Product>(`/products/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(dto),
+    })
 };
 
 export const inventoryApi = {

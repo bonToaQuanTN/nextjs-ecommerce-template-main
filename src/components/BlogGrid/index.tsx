@@ -96,7 +96,7 @@ const UserManagement = () => {
               onClick={() => router.push("/admin/users/create")}
               className="bg-blue text-white py-2 px-5 rounded-md hover:bg-opacity-90"
             >
-              + Thêm người dùng
+              Thêm người dùng
             </button>
           </div>
 
@@ -147,7 +147,7 @@ const UserManagement = () => {
                   </div>
 
                   <div className="flex gap-3 mt-5">
-                    <button onClick={() => router.push(`/admin/users/edit/${user.id}`)}
+                    <button onClick={() => router.push(`/blogs/blog-details/${user.id}`)}
                       className="flex-1 bg-gray-2 text-dark py-2 rounded-md text-sm hover:bg-gray-3">
                       Chỉnh sửa
                     </button>

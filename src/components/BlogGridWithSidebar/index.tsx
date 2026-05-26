@@ -112,11 +112,8 @@ const InventoryDashboard = () => {
     loadAll();
   }, [fetchProducts, fetchInventories, fetchWarehouses, fetchCategories]);
 
-  // ─── Category click handler ───
-  // ─── Category click handler ───
 const handleCategoryClick = useCallback(
   async (cat: Category) => {
-    // Nếu click lại danh mục đang active → bỏ chọn, load lại tất cả sản phẩm
     if (activeCategory === cat.id) {
       setActiveCategory(null);
       setActiveCategoryName(null);
@@ -185,7 +182,6 @@ const handleCategoryClick = useCallback(
     }
   };
 
-  // ─── Clear category filter ───
   const handleClearCategory = async () => {
     setActiveCategory(null);
     setActiveCategoryName(null);
@@ -361,7 +357,7 @@ const handleCategoryClick = useCallback(
                           </div>
                           <div className="p-5">
                             <h4 className="font-medium text-dark text-lg mb-2 hover:text-blue">
-                              <Link href={`/admin/products/${product.id}`}>
+                              <Link href={`/blogs/blog-details-with-sidebar/${product.id}`}>
                                 {product.name}
                               </Link>
                             </h4>
