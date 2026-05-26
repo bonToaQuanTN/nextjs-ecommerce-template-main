@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import OrderActions from "./OrderActions";
 import OrderModal from "./OrderModal";
 
-// Hàm helper để format ngày tháng cho đẹp
 const formatDate = (dateString) => {
   return new Date(dateString).toLocaleDateString("en-US", {
     year: "numeric", month: "short", day: "numeric"
@@ -16,8 +15,6 @@ const SingleOrder = ({ orderItem, refreshOrders, currentUser }) =>{
   const toggleDetails = () => setShowDetails(!showDetails);
   const toggleEdit = () => setShowEdit(!showEdit);
   const toggleModal = (status) => { setShowDetails(status); setShowEdit(status); };
-
-  // Logic đổi màu cho Status khớp với Backend (PENDING, PAID, CANCELLED)
   const getStatusClass = (status) => {
     const lowerStatus = status?.toLowerCase();
     if (lowerStatus === "paid" || lowerStatus === "delivered") return "text-green bg-green-light-6";
@@ -28,7 +25,6 @@ const SingleOrder = ({ orderItem, refreshOrders, currentUser }) =>{
 
   return (
     <>
-      {/* Desktop View */}
       <div className="items-center justify-between border-t border-gray-3 py-5 px-7.5 hidden md:flex">
         <div className="min-w-[111px]">
           <p className="text-custom-sm text-red">#{orderItem.id?.slice(0, 8)}</p>
@@ -42,7 +38,6 @@ const SingleOrder = ({ orderItem, refreshOrders, currentUser }) =>{
           </p>
         </div>
         
-        {/* Thay Title bằng Customer Name từ Backend */}
         <div className="min-w-[213px]">
           <p className="text-custom-sm text-dark">
             {orderItem.user?.firstName} {orderItem.user?.lastName}

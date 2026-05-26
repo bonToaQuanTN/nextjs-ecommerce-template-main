@@ -72,6 +72,7 @@ export interface CreateProductDto {
   thumbnail?: string;
   unit?: string;
   categoryId?: string;
+  origin: string;
 }
 
 export const productApi = {
@@ -180,5 +181,46 @@ export const categoryApi = {
     } while (page <= lastPage && page <= maxPages);
 
     return all;
+  },
+
+  
+};
+
+
+export const uploadApi = {
+  uploadFile: async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    // Lấy token nhưng KHÔNG set Content-Type để trình duyệt tự xử lý multipart boundary
+    const token =
+      typeof window !== "undefined"
+        ? localStorage.getItem("access_token") || ""
+        : "";
+
+    const headers: HeadersInit = {};
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+
+    const res = await fetch(`${API_BASE_URL}/upload`, {
+      method: "POST",
+      headers,
+      body: formData, // Gửi FormData thay vì JSON.stringify
+    });
+
+    if (!res.ok) {
+      const message = await res.text().catch(() => res.statusText);
+      throw new Error(`Upload thất bại: ${message}`);
+    }
+
+    const data = await res.json();
+    
+    // Backend trả về { message: 'Upload success', urls: [...] }
+    // Tùy vào việc urls là mảng hay chuỗi, ta lấy link ảnh ra
+    if (Array.isArray(data.urls)) {
+      return data.urls[0]; // Lấy phần tử đầu tiên nếu là mảng
+    }
+    return data.urls; // Trả về trực tiếp nếu nó là string
   },
 };

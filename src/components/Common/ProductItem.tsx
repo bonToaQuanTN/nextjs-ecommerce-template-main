@@ -15,21 +15,17 @@ import { toast } from "react-hot-toast";
 const ProductItem = ({ item }: { item: Product }) => {
   const { openModal } = useModalContext();
   const dispatch = useDispatch<AppDispatch>();
-
-  // ✅ Chỉ cần lấy loading, KHÔNG cần cartId nữa
   const loading = useSelector((state: RootState) => state.cart.loading);
 
   const handleQuickViewUpdate = () => {
     dispatch(updateQuickView({ ...item }));
   };
-
-  // ======== THÊM VÀO GIỎ HÀNG ========
   const handleAddToCart = async () => {
     try {
       await dispatch(
         addItemToCartAsync({
-          item,         // ✅ Chỉ truyền item + quantity
-          quantity: 1,  // Thunk tự lấy cartId & gọi API
+          item,        
+          quantity: 1,  
         })
       ).unwrap();
 

@@ -24,7 +24,7 @@ const MyAccount = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const res = await axiosInstance.get("/users/profile");
+        const res = await axiosInstance.get("/User/profile");
         const data = res.data;
         setUser({
           firstName: data.firstName || "",
@@ -45,7 +45,7 @@ const MyAccount = () => {
   const handleAccountDetailsSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
-      const res = await axiosInstance.put("/users/profile", {
+      const res = await axiosInstance.put("/User/profile", {
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
@@ -64,7 +64,7 @@ const MyAccount = () => {
     if (!newPassword) return alert("Vui lòng nhập mật khẩu mới");
     
     try {
-      await axiosInstance.put("/users/profile", { password: newPassword });
+      await axiosInstance.put("/User/profile", { password: newPassword });
       alert("Đổi mật khẩu thành công!");
       setNewPassword("");
     } catch (error) {
@@ -80,7 +80,7 @@ const MyAccount = () => {
     } finally {
       localStorage.removeItem("access_token");
       localStorage.removeItem("refresh_token");
-      window.location.href = "/login";
+      window.location.href = "/signin";
     }
   };
 
@@ -189,7 +189,7 @@ const MyAccount = () => {
                       <input type="text" id="designation" value={user.designation} onChange={(e) => setUser({...user, designation: e.target.value})} className="rounded-md border border-gray-3 bg-gray-1 w-full py-2.5 px-5 outline-none focus:ring-2 focus:ring-blue/20" />
                     </div>
 
-                    <button type="submit" className="inline-flex font-medium text-white bg-blue py-3 px-7 rounded-md ease-out duration-200 hover:bg-blue-dark">Save Changes</button>
+                    <button type="submit" className="inline-flex font-medium text-white bg-blue py-3 px-7 rounded-md ease-out duration-200 hover:bg-blue-dark">Lưu thay đổi</button>
                   </div>
                 </form>
 

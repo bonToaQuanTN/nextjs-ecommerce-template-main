@@ -57,7 +57,6 @@ const QuickViewModal = () => {
     openPreviewModal();
   };
 
-  // add to cart
   const handleAddToCart = () => {
     dispatch(
       addItemToCart({

@@ -1,9 +1,16 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image"; // Thêm Image của NextJS để xem trước ảnh
 import Breadcrumb from "@/components/Common/Breadcrumb";
-import { productApi, type CreateProductDto } from "@/service/map/inventory/inventory";
+import { 
+  productApi, 
+  categoryApi, 
+  uploadApi, // Import thêm uploadApi
+  type CreateProductDto, 
+  type Category 
+} from "@/service/map/inventory/inventory";
 
 const CreateProductPage = () => {
   const router = useRouter();
@@ -15,10 +22,33 @@ const CreateProductPage = () => {
     thumbnail: "",
     unit: "cái",
     categoryId: "",
+    origin: ""
   });
 
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
+  const [catLoading, setCatLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // --- State cho Upload ---
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  // ─── Fetch danh mục ───
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const allCats = await categoryApi.getAllFlatten();
+        setCategories(allCats);
+      } catch (err) {
+        console.error("fetchCategories failed:", err);
+      } finally {
+        setCatLoading(false);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -30,16 +60,50 @@ const CreateProductPage = () => {
     }));
   };
 
+  // ─── Xử lý Upload File ───
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Xóa lỗi cũ và xem trước tạm thời bằng URL cục bộ
+    setUploadError(null);
+    setPreviewUrl(URL.createObjectURL(file));
+    setUploading(true);
+
+    try {
+      // Gọi API upload
+      const imageUrl = await uploadApi.uploadFile(file);
+      // Cập nhật URL thực từ Cloudinary/Server vào formData
+      setFormData((prev) => ({ ...prev, thumbnail: imageUrl }));
+    } catch (err: any) {
+      setUploadError(err.message || "Upload ảnh thất bại.");
+      setPreviewUrl(null); // Xóa ảnh xem trước nếu lỗi
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!formData.thumbnail) {
+      setError("Vui lòng đợi ảnh tải lên hoặc chọn ảnh cho sản phẩm.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
-      await productApi.create(formData);
-      // Thành công thì quay về trang danh sách sản phẩm
-      router.push("/admin/products"); // Đổi path nếu route Dashboard của bạn khác
+      const payload = { ...formData };
+      if (!payload.categoryId) {
+        delete payload.categoryId;
+      }
+      console.log(" Payload gửi lên backend:", payload);
+      await productApi.create(payload);
+      router.push("/blogs/blog-grid-with-sidebar");
     } catch (err: any) {
+      console.error(" Lỗi khi tạo sản phẩm:", err);
       setError(err.message || "Không thể tạo sản phẩm. Vui lòng thử lại.");
     } finally {
       setLoading(false);
@@ -78,11 +142,8 @@ const CreateProductPage = () => {
                 />
               </div>
 
-              {/* Mô tả */}
               <div>
-                <label className="block text-sm font-medium text-dark mb-1.5">
-                  Mô tả
-                </label>
+                <label className="block text-sm font-medium text-dark mb-1.5">Mô tả</label>
                 <textarea
                   name="description"
                   value={formData.description}
@@ -111,9 +172,7 @@ const CreateProductPage = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-dark mb-1.5">
-                    Đơn vị
-                  </label>
+                  <label className="block text-sm font-medium text-dark mb-1.5">Đơn vị</label>
                   <input
                     type="text"
                     name="unit"
@@ -125,17 +184,61 @@ const CreateProductPage = () => {
                 </div>
               </div>
 
-              {/* Ảnh thumbnail */}
+              {/* ── Upload Ảnh ── */}
               <div>
                 <label className="block text-sm font-medium text-dark mb-1.5">
-                  URL Hình ảnh
+                  Hình ảnh sản phẩm <span className="text-red-500">*</span>
+                </label>
+                <div className="flex items-center gap-4">
+                  <label className={`cursor-pointer bg-gray-2 text-dark py-2.5 px-4 rounded-md hover:bg-gray-3 text-sm font-medium transition ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                    {uploading ? "Đang tải lên..." : "📁 Chọn ảnh"}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileChange}
+                      disabled={uploading}
+                      className="hidden" // Ẩn nút input mặc định, dùng label thay thế
+                    />
+                  </label>
+                  {formData.thumbnail && !uploading && (
+                    <span className="text-xs text-green-600">✓ Đã tải lên thành công</span>
+                  )}
+                </div>
+                
+                {/* Hiển thị lỗi Upload */}
+                {uploadError && (
+                  <p className="text-red-500 text-xs mt-1">{uploadError}</p>
+                )}
+
+                {/* Xem trước ảnh */}
+                {previewUrl && (
+                  <div className="mt-3 relative w-32 h-32 rounded-md overflow-hidden border border-gray-3">
+                    <Image
+                      src={previewUrl}
+                      alt="Preview"
+                      layout="fill"
+                      objectFit="cover"
+                    />
+                    {uploading && (
+                      <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                        <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              {/* Xuất xứ sản phẩm */}
+              <div>
+                <label className="block text-sm font-medium text-dark mb-1.5">
+                  Xuất xứ <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
-                  name="thumbnail"
-                  value={formData.thumbnail}
+                  name="origin"
+                  value={formData.origin}
                   onChange={handleChange}
-                  placeholder="https://example.com/image.jpg"
+                  required
+                  placeholder="Nhập xuất xứ (Ví dụ: Việt Nam, Nhật Bản...)"
                   className="w-full border border-gray-3 rounded-md px-4 py-2.5 text-sm focus:outline-none focus:border-blue"
                 />
               </div>
@@ -143,16 +246,24 @@ const CreateProductPage = () => {
               {/* Danh mục */}
               <div>
                 <label className="block text-sm font-medium text-dark mb-1.5">
-                  ID Danh mục
+                  Danh mục sản phẩm
                 </label>
-                <input
-                  type="text"
+                <select
                   name="categoryId"
                   value={formData.categoryId}
                   onChange={handleChange}
-                  placeholder="UUID của danh mục (nếu có)"
-                  className="w-full border border-gray-3 rounded-md px-4 py-2.5 text-sm focus:outline-none focus:border-blue"
-                />
+                  disabled={catLoading}
+                  className="w-full border border-gray-3 rounded-md px-4 py-2.5 text-sm focus:outline-none focus:border-blue bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                >
+                  <option value="">
+                    {catLoading ? "Đang tải danh mục..." : "-- Chọn danh mục --"}
+                  </option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* Actions */}
@@ -166,7 +277,7 @@ const CreateProductPage = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || uploading} 
                   className="px-6 py-2.5 bg-blue text-white rounded-md hover:bg-opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center gap-2"
                 >
                   {loading && (
