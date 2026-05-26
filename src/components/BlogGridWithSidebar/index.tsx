@@ -32,6 +32,7 @@ const InventoryDashboard = () => {
   // --- UI state ---
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [categoryLoading, setCategoryLoading] = useState(false);
 
   // --- Pagination ---
   const [productPage, setProductPage] = useState(1);
@@ -40,6 +41,10 @@ const InventoryDashboard = () => {
   // --- Search ---
   const [searchQuery, setSearchQuery] = useState("");
   const [activeSearch, setActiveSearch] = useState("");
+
+  // --- Category filter ---
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [activeCategoryName, setActiveCategoryName] = useState<string | null>(null);
 
   // ─── Fetchers ───
   const fetchProducts = useCallback(async (page: number, search?: string) => {
@@ -107,20 +112,58 @@ const InventoryDashboard = () => {
     loadAll();
   }, [fetchProducts, fetchInventories, fetchWarehouses, fetchCategories]);
 
-  // ─── Page change ───
+  // ─── Category click handler ───
+  // ─── Category click handler ───
+const handleCategoryClick = useCallback(
+  async (cat: Category) => {
+    // Nếu click lại danh mục đang active → bỏ chọn, load lại tất cả sản phẩm
+    if (activeCategory === cat.id) {
+      setActiveCategory(null);
+      setActiveCategoryName(null);
+      setProductPage(1);
+      try {
+        await fetchProducts(1, activeSearch || undefined);
+      } catch {
+        setError("Không thể tải sản phẩm.");
+      }
+      return;
+    }
+
+    setActiveCategory(cat.id);
+    setActiveCategoryName(cat.name);
+    setCategoryLoading(true);
+    setProductPage(1);
+    setProductLastPage(1);
+
+    try {
+      const res = await categoryApi.getProductsByCategory(cat.name);
+      setProducts(res.data || []);
+    } catch (err) {
+      console.error("getProductsByCategory failed:", err);
+      setError("Không thể tải sản phẩm theo danh mục.");
+      setProducts([]);
+    } finally {
+      setCategoryLoading(false);
+    }
+  },
+  [activeCategory, activeSearch, fetchProducts]
+);
   const handlePageChange = async (newPage: number) => {
     setProductPage(newPage);
     try {
-      await fetchProducts(newPage, activeSearch);
+      if (!activeCategory) {
+        await fetchProducts(newPage, activeSearch);
+      }
     } catch {
       setError("Không thể tải trang.");
     }
   };
 
-  // ─── Search ───
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     setActiveSearch(searchQuery);
+    setActiveCategory(null);
+    setActiveCategoryName(null);
     setProductPage(1);
     try {
       await fetchProducts(1, searchQuery);
@@ -132,9 +175,23 @@ const InventoryDashboard = () => {
   const handleClearSearch = async () => {
     setSearchQuery("");
     setActiveSearch("");
+    setActiveCategory(null);
+    setActiveCategoryName(null);
     setProductPage(1);
     try {
       await fetchProducts(1);
+    } catch {
+      setError("Không thể tải sản phẩm.");
+    }
+  };
+
+  // ─── Clear category filter ───
+  const handleClearCategory = async () => {
+    setActiveCategory(null);
+    setActiveCategoryName(null);
+    setProductPage(1);
+    try {
+      await fetchProducts(1, activeSearch || undefined);
     } catch {
       setError("Không thể tải sản phẩm.");
     }
@@ -201,7 +258,6 @@ const InventoryDashboard = () => {
                   Danh sách sản phẩm
                 </h3>
                 <div className="flex items-center gap-3">
-                  {/* Search bar */}
                   <form onSubmit={handleSearch} className="flex gap-2">
                     <input
                       type="text"
@@ -214,7 +270,7 @@ const InventoryDashboard = () => {
                       type="submit"
                       className="bg-gray-2 text-dark py-2 px-3 rounded-md hover:bg-gray-3 text-sm"
                     >
-                      🔍
+                      Tìm
                     </button>
                     {activeSearch && (
                       <button
@@ -226,84 +282,118 @@ const InventoryDashboard = () => {
                       </button>
                     )}
                   </form>
-                  
-                  {/* SỬA Ở ĐÂY: Đổi button thành Link */}
-                  <Link 
-                    href="/blogs/blog-grid-with-sidebar/create" 
+                  <Link
+                    href="/blogs/blog-grid-with-sidebar/create"
                     className="bg-blue text-white py-2 px-4 rounded-md hover:bg-opacity-90 inline-block text-center whitespace-nowrap"
                   >
-                    + Thêm sản phẩm
+                    Thêm sản phẩm
                   </Link>
                 </div>
               </div>
 
-              {activeSearch && (
-                <p className="text-sm text-gray-500 mb-4">
-                  Kết quả tìm kiếm cho:{" "}
-                  <span className="font-medium text-dark">
-                    &ldquo;{activeSearch}&rdquo;
-                  </span>
-                </p>
+              {/* Active filters */}
+              {(activeSearch || activeCategoryName) && (
+                <div className="flex flex-wrap items-center gap-2 mb-4">
+                  {activeCategoryName && (
+                    <span className="inline-flex items-center gap-1.5 bg-blue/10 text-blue text-sm font-medium px-3 py-1.5 rounded-full">
+                      {activeCategoryName}
+                      <button
+                        onClick={handleClearCategory}
+                        className="ml-0.5 hover:text-red-500 transition-colors"
+                        title="Xoá bộ lọc danh mục"
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  )}
+                  {activeSearch && (
+                    <span className="text-sm text-gray-500">
+                      Tìm kiếm:{" "}
+                      <span className="font-medium text-dark">
+                        &ldquo;{activeSearch}&rdquo;
+                      </span>
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* Category loading overlay */}
+              {categoryLoading && (
+                <div className="flex items-center justify-center py-10">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="w-8 h-8 border-3 border-blue border-t-transparent rounded-full animate-spin" />
+                    <p className="text-gray-400 text-sm">
+                      Đang tải sản phẩm theo danh mục...
+                    </p>
+                  </div>
+                </div>
               )}
 
               {/* Product Cards */}
-              {products.length === 0 ? (
+              {!categoryLoading && products.length === 0 ? (
                 <div className="bg-white rounded-xl shadow-1 p-10 text-center">
-                  <p className="text-gray-400 text-lg">Không tìm thấy sản phẩm nào.</p>
+                  <p className="text-gray-400 text-lg">
+                    Không tìm thấy sản phẩm nào.
+                  </p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-10 gap-x-7.5">
-                  {products.map((product) => {
-                    const totalStock = getTotalStock(product.id, inventories);
+                !categoryLoading && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-10 gap-x-7.5">
+                    {products.map((product) => {
+                      const totalStock = getTotalStock(product.id, inventories);
 
-                    return (
-                      <div
-                        key={product.id}
-                        className="bg-white rounded-xl shadow-1 overflow-hidden group"
-                      >
-                        <div className="relative w-full h-60 overflow-hidden">
-                          <Image
-                            src={product.thumbnail || "/images/products/default.jpg"}
-                            alt={product.name}
-                            layout="fill"
-                            objectFit="cover"
-                            className="group-hover:scale-105 transition-transform duration-300"
-                          />
-                        </div>
-                        <div className="p-5">
-                          <h4 className="font-medium text-dark text-lg mb-2 hover:text-blue">
-                            <Link href={`/admin/products/${product.id}`}>
-                              {product.name}
-                            </Link>
-                          </h4>
-                          <p className="text-gray-500 text-sm mb-3 line-clamp-2">
-                            {product.description}
-                          </p>
-                          <div className="flex justify-between items-center">
-                            <span className="text-blue font-bold text-xl">
-                              ${product.price}
-                            </span>
-                            <span
-                              className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                totalStock > 20
-                                  ? "bg-green-100 text-green-600"
-                                  : totalStock > 0
-                                  ? "bg-yellow-100 text-yellow-600"
-                                  : "bg-red-100 text-red-600"
-                              }`}
-                            >
-                              Còn hàng: {totalStock} {product.unit}
-                            </span>
+                      return (
+                        <div
+                          key={product.id}
+                          className="bg-white rounded-xl shadow-1 overflow-hidden group"
+                        >
+                          <div className="relative w-full h-60 overflow-hidden">
+                            <Image
+                              src={
+                                product.thumbnail ||
+                                "/images/products/default.jpg"
+                              }
+                              alt={product.name}
+                              layout="fill"
+                              objectFit="cover"
+                              className="group-hover:scale-105 transition-transform duration-300"
+                            />
+                          </div>
+                          <div className="p-5">
+                            <h4 className="font-medium text-dark text-lg mb-2 hover:text-blue">
+                              <Link href={`/admin/products/${product.id}`}>
+                                {product.name}
+                              </Link>
+                            </h4>
+                            <p className="text-gray-500 text-sm mb-3 line-clamp-2">
+                              {product.description}
+                            </p>
+                            <div className="flex justify-between items-center">
+                              <span className="text-blue font-bold text-xl">
+                                ${product.price}
+                              </span>
+                              <span
+                                className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                  totalStock > 20
+                                    ? "bg-green-100 text-green-600"
+                                    : totalStock > 0
+                                    ? "bg-yellow-100 text-yellow-600"
+                                    : "bg-red-100 text-red-600"
+                                }`}
+                              >
+                                Còn hàng: {totalStock} {product.unit}
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                  </div>
+                )
               )}
 
-              {/* Pagination */}
-              {productLastPage > 1 && (
+              {/* Pagination – chỉ hiện khi KHÔNG filter theo category */}
+              {!activeCategory && productLastPage > 1 && (
                 <div className="flex justify-center items-center gap-2 mt-10">
                   <button
                     onClick={() => handlePageChange(productPage - 1)}
@@ -329,7 +419,10 @@ const InventoryDashboard = () => {
                     }, [])
                     .map((item, idx) =>
                       typeof item === "string" ? (
-                        <span key={`dots-${idx}`} className="px-2 text-gray-400">
+                        <span
+                          key={`dots-${idx}`}
+                          className="px-2 text-gray-400"
+                        >
                           ...
                         </span>
                       ) : (
@@ -390,10 +483,19 @@ const InventoryDashboard = () => {
 
               {/* Category Box */}
               <div className="shadow-1 bg-white rounded-xl mt-7.5">
-                <div className="px-4 sm:px-6 py-4.5 border-b border-gray-3">
+                <div className="px-4 sm:px-6 py-4.5 border-b border-gray-3 flex items-center justify-between">
                   <h2 className="font-medium text-lg text-dark">
                     Danh mục sản phẩm
                   </h2>
+                  {activeCategory && (
+                    <button
+                      onClick={handleClearCategory}
+                      className="text-xs text-gray-400 hover:text-red-500 transition-colors"
+                      title="Xoá bộ lọc"
+                    >
+                      Xoá lọc ✕
+                    </button>
+                  )}
                 </div>
                 <div className="p-4 sm:p-6">
                   {categories.length === 0 ? (
@@ -401,20 +503,50 @@ const InventoryDashboard = () => {
                       Không có danh mục nào.
                     </p>
                   ) : (
-                    <div className="flex flex-col gap-3">
-                      {categories.map((cat) => (
-                        <button
-                          key={cat.id}
-                          className="group flex items-center justify-between ease-out duration-200 text-dark hover:text-blue"
-                        >
-                          {cat.name}
-                          {cat.products !== undefined && (
-                            <span className="inline-flex rounded-[30px] bg-gray-2 text-custom-xs px-1.5 ease-out duration-200 group-hover:text-white group-hover:bg-blue">
-                              {cat.products}
+                    <div className="flex flex-col gap-2">
+                      {categories.map((cat) => {
+                        const isActive = activeCategory === cat.id;
+
+                        return (
+                          <button
+                            key={cat.id}
+                            onClick={() => handleCategoryClick(cat)}
+                            className={`group flex items-center justify-between ease-out duration-200 rounded-lg px-3 py-2.5 text-left transition-all ${
+                              isActive
+                                ? "bg-blue/10 text-blue font-semibold border border-blue/20"
+                                : "text-dark hover:text-blue hover:bg-gray-2/50"
+                            }`}
+                          >
+                            <span className="flex items-center gap-2">
+                              {isActive && (
+                                <svg
+                                  className="w-4 h-4 text-blue flex-shrink-0"
+                                  fill="currentColor"
+                                  viewBox="0 0 20 20"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                              )}
+                              {cat.name}
                             </span>
-                          )}
-                        </button>
-                      ))}
+                            {cat.products !== undefined && (
+                              <span
+                                className={`inline-flex rounded-[30px] text-custom-xs px-1.5 ease-out duration-200 ${
+                                  isActive
+                                    ? "bg-blue text-white"
+                                    : "bg-gray-2 group-hover:text-white group-hover:bg-blue"
+                                }`}
+                              >
+                                {cat.products}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
                 </div>

@@ -97,8 +97,7 @@ export const productApi = {
 };
 
 export const inventoryApi = {
-  getAll: (page = 1) =>
-    apiFetch<PaginatedResponse<Inventory>>(`/inventories?page=${page}`),
+  getAll: (page = 1) => apiFetch<PaginatedResponse<Inventory>>(`/inventories?page=${page}`),
   getAllFlatten: async (maxPages = 20): Promise<Inventory[]> => {
     const all: Inventory[] = [];
     let page = 1;
@@ -124,9 +123,8 @@ export const inventoryApi = {
       body: JSON.stringify(dto),
     }),
 
-  delete: (id: string) =>
-    apiFetch<void>(`/inventories/${id}`, { method: "DELETE" }),
-
+  delete: (id: string) => apiFetch<void>(`/inventories/${id}`, { method: "DELETE" }),
+  
   };
 
 export const warehouseApi = {
@@ -182,8 +180,8 @@ export const categoryApi = {
 
     return all;
   },
-
-  
+  getProductsByCategory: (name: string) =>
+    apiFetch<PaginatedResponse<Product>>(`/categories/${encodeURIComponent(name)}/products`)
 };
 
 
