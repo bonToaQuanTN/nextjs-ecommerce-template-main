@@ -2,14 +2,17 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image"; // Thêm Image của NextJS để xem trước ảnh
+import Image from "next/image";
 import Breadcrumb from "@/components/Common/Breadcrumb";
 import { 
   productApi, 
   categoryApi, 
-  uploadApi, // Import thêm uploadApi
+  warehouseApi,
+  inventoryApi,
+  uploadApi, 
   type CreateProductDto, 
-  type Category 
+  type Category,
+  type Warehouse 
 } from "@/service/map/inventory/inventory";
 
 const CreateProductPage = () => {
@@ -25,29 +28,38 @@ const CreateProductPage = () => {
     origin: ""
   });
 
+  // ✅ State cho Inventory (Tồn kho)
+  const [quantity, setQuantity] = useState<number>(0);
+  const [warehouseId, setWarehouseId] = useState<string>("");
+
   const [categories, setCategories] = useState<Category[]>([]);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]); 
+  
   const [loading, setLoading] = useState(false);
   const [catLoading, setCatLoading] = useState(true);
+  const [whLoading, setWhLoading] = useState(true); 
+  
   const [error, setError] = useState<string | null>(null);
-
-  // --- State cho Upload ---
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-
-  // ─── Fetch danh mục ───
   useEffect(() => {
-    const fetchCategories = async () => {
+    const fetchData = async () => {
       try {
-        const allCats = await categoryApi.getAllFlatten();
+        const [allCats, allWhs] = await Promise.all([
+          categoryApi.getAllFlatten(),
+          warehouseApi.getAllFlatten() // ✅ Gọi song song để tối ưu tốc độ
+        ]);
         setCategories(allCats);
+        setWarehouses(allWhs);
       } catch (err) {
-        console.error("fetchCategories failed:", err);
+        console.error("fetchData failed:", err);
       } finally {
         setCatLoading(false);
+        setWhLoading(false);
       }
     };
-    fetchCategories();
+    fetchData();
   }, []);
 
   const handleChange = (
@@ -60,34 +72,34 @@ const CreateProductPage = () => {
     }));
   };
 
-  // ─── Xử lý Upload File ───
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Xóa lỗi cũ và xem trước tạm thời bằng URL cục bộ
     setUploadError(null);
     setPreviewUrl(URL.createObjectURL(file));
     setUploading(true);
 
     try {
-      // Gọi API upload
       const imageUrl = await uploadApi.uploadFile(file);
-      // Cập nhật URL thực từ Cloudinary/Server vào formData
       setFormData((prev) => ({ ...prev, thumbnail: imageUrl }));
     } catch (err: any) {
       setUploadError(err.message || "Upload ảnh thất bại.");
-      setPreviewUrl(null); // Xóa ảnh xem trước nếu lỗi
+      setPreviewUrl(null);
     } finally {
       setUploading(false);
     }
   };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.thumbnail) {
       setError("Vui lòng đợi ảnh tải lên hoặc chọn ảnh cho sản phẩm.");
+      return;
+    }
+
+    if (quantity > 0 && !warehouseId) {
+      setError("Vui lòng chọn kho hàng nếu bạn nhập số lượng tồn kho.");
       return;
     }
 
@@ -99,11 +111,24 @@ const CreateProductPage = () => {
       if (!payload.categoryId) {
         delete payload.categoryId;
       }
-      console.log(" Payload gửi lên backend:", payload);
-      await productApi.create(payload);
+      console.log("Payload Product:", payload);
+      const newProduct = await productApi.create(payload);
+      const productId = newProduct?.id || newProduct?.data?.id; 
+      if (productId && quantity > 0 && warehouseId) {
+        const inventoryPayload = {
+          productId,
+          warehouseId,
+          quantity
+        };
+        console.log("Payload Inventory:", inventoryPayload);
+        await inventoryApi.create(inventoryPayload);
+      }
+
+      // Thành công thì chuyển hướng
       router.push("/blogs/blog-grid-with-sidebar");
+      
     } catch (err: any) {
-      console.error(" Lỗi khi tạo sản phẩm:", err);
+      console.error("Lỗi khi tạo sản phẩm/tồn kho:", err);
       setError(err.message || "Không thể tạo sản phẩm. Vui lòng thử lại.");
     } finally {
       setLoading(false);
@@ -197,7 +222,7 @@ const CreateProductPage = () => {
                       accept="image/*"
                       onChange={handleFileChange}
                       disabled={uploading}
-                      className="hidden" // Ẩn nút input mặc định, dùng label thay thế
+                      className="hidden"
                     />
                   </label>
                   {formData.thumbnail && !uploading && (
@@ -205,12 +230,10 @@ const CreateProductPage = () => {
                   )}
                 </div>
                 
-                {/* Hiển thị lỗi Upload */}
                 {uploadError && (
                   <p className="text-red-500 text-xs mt-1">{uploadError}</p>
                 )}
 
-                {/* Xem trước ảnh */}
                 {previewUrl && (
                   <div className="mt-3 relative w-32 h-32 rounded-md overflow-hidden border border-gray-3">
                     <Image
@@ -227,6 +250,7 @@ const CreateProductPage = () => {
                   </div>
                 )}
               </div>
+
               {/* Xuất xứ sản phẩm */}
               <div>
                 <label className="block text-sm font-medium text-dark mb-1.5">
@@ -264,6 +288,43 @@ const CreateProductPage = () => {
                     </option>
                   ))}
                 </select>
+              </div>
+
+              {/* ✅ SỐ LƯỢNG TỒN KHO & KHO HÀNG */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div>
+                  <label className="block text-sm font-medium text-dark mb-1.5">
+                    Số lượng tồn kho ban đầu
+                  </label>
+                  <input
+                    type="number"
+                    value={quantity || ""}
+                    onChange={(e) => setQuantity(Number(e.target.value))}
+                    min="0"
+                    placeholder="0"
+                    className="w-full border border-gray-3 rounded-md px-4 py-2.5 text-sm focus:outline-none focus:border-blue"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-dark mb-1.5">
+                    Kho hàng nhập vào
+                  </label>
+                  <select
+                    value={warehouseId}
+                    onChange={(e) => setWarehouseId(e.target.value)}
+                    disabled={whLoading}
+                    className="w-full border border-gray-3 rounded-md px-4 py-2.5 text-sm focus:outline-none focus:border-blue bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  >
+                    <option value="">
+                      {whLoading ? "Đang tải kho..." : "-- Chọn kho hàng --"}
+                    </option>
+                    {warehouses.map((wh) => (
+                      <option key={wh.id} value={wh.id}>
+                        {wh.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               {/* Actions */}
