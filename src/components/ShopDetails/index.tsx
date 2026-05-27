@@ -68,7 +68,6 @@ const ShopDetails = () => {
           price: (parseFloat(data.price) * 1.3).toFixed(2),
           discountedPrice: parseFloat(data.price).toFixed(2),
           imgs: {
-            // Backend chỉ có 1 ảnh 'thumbnail' -> Ta đưa nó vào mảng để template duyệt (map)
             previews: data.thumbnail ? [data.thumbnail] : ["/images/product-placeholder.png"],
             thumbnails: data.thumbnail ? [data.thumbnail] : ["/images/product-placeholder.png"]
           }

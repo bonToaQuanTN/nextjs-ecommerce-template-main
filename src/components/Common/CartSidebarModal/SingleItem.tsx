@@ -15,7 +15,6 @@ const SingleItem = ({ item }: { item: CartItemLocal }) => {
   const currentPrice = item.discountedPrice ?? item.price ?? 0;
   const subtotal = currentPrice * item.quantity;
 
-  // ======== XÓA SẢN PHẨM QUA THUNK ========
   const handleRemoveFromCart = async () => {
     if (!item.cartItemId || isUpdating) return;
     setIsUpdating(true);
@@ -29,7 +28,6 @@ const SingleItem = ({ item }: { item: CartItemLocal }) => {
     }
   };
 
-  // ======== CẬP NHẬT SỐ LƯỢNG QUA THUNK ========
   const handleUpdateQuantity = async (newQty: number) => {
     if (!item.cartItemId || isUpdating || newQty < 1) return;
     setIsUpdating(true);

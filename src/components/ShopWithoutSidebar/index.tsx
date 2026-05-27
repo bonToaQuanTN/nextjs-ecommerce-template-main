@@ -128,9 +128,7 @@ const ShopWithoutSidebar = () => {
                   </ul>
                 </div>
               </div>
-              {/* <!-- Products Pagination End --> */}
             </div>
-            {/* // <!-- Content End --> */}
           </div>
         </div>
       </section>

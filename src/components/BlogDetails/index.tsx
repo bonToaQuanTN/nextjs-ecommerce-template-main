@@ -1,72 +1,65 @@
-"use client"; // Bắt buộc nếu dùng Next.js App Router
+"use client";
 
 import React, { useState, useEffect } from "react";
 import Breadcrumb from "../Common/Breadcrumb";
-import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 
-// URL Backend của bạn
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
 const UserPermissionsForm = () => {
-  const { id } = useParams(); // Lấy ID user từ URL: /admin/users/permissions/[id]
+  const { id } = useParams();
   const router = useRouter();
 
-  // States
-  const [user, setUser] = useState(null);
-  const [roles, setRoles] = useState([]);
-  const [permissions, setPermissions] = useState([]);
-  const [selectedRole, setSelectedRole] = useState("");
-  const [assignedPermissions, setAssignedPermissions] = useState([]); // Mảng chứa các permission ID được chọn
+  const [roles, setRoles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  
+  // Quản lý toàn bộ dữ liệu form bằng 1 state
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    designation: "",
+    roleId: "",
+  });
 
-  // Fetch dữ liệu khi component mount
+  const getAuthHeaders = () => {
+    if (typeof window === "undefined") return {};
+    const token = localStorage.getItem("access_token"); 
+    return {
+      "Content-Type": "application/json",
+      Authorization: token ? `Bearer ${token}` : "",
+    };
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Giả lập gọi API (Thay bằng fetch thật của bạn)
-        // const userRes = await fetch(`${API_URL}/users/${id}`);
-        // const userData = await userRes.json();
-        
-        // --- MOCK DATA DỰA TRÊN SCHEMA CỦA BẠN ---
-        const userData = {
-          id: id,
-          firstName: "Jhon",
-          lastName: "Drineo",
-          email: "jhon@admin.com",
-          phone: "0909123456",
-          designation: "Entroprenor",
-          roleId: "role_admin",
-          avatar: "/images/users/user-04.jpg"
-        };
-
-        const rolesData = [
-          { id: "role_admin", name: "Admin" },
-          { id: "role_manager", name: "Manager" },
-          { id: "role_staff", name: "Staff" }
-        ];
-
-        const permissionsData = [
-          { id: "perm_1", name: "POST.PRODUCT", description: "Thêm sản phẩm" },
-          { id: "perm_2", name: "DELETE.PRODUCT", description: "Xóa sản phẩm" },
-          { id: "perm_3", name: "POST.UPLOAD", description: "Upload file" },
-          { id: "perm_4", name: "GET.PRODUCT_IMAGE", description: "Xem ảnh sản phẩm" },
-          { id: "perm_5", name: "PUT.PRODUCT", description: "Sửa sản phẩm" },
-          { id: "perm_6", name: "MANAGE_USERS", description: "Quản lý người dùng" },
-        ];
-        // -----------------------------------------
-
-        setUser(userData);
+        // 1. Lấy danh sách Roles
+        const rolesRes = await fetch(`${API_URL}/roles`, { headers: getAuthHeaders() });
+        if (!rolesRes.ok) throw new Error(`Lỗi tải danh sách vai trò (Mã: ${rolesRes.status})`);
+        const rolesData = await rolesRes.json();
         setRoles(rolesData);
-        setPermissions(permissionsData);
-        setSelectedRole(userData.roleId);
-        
-        // Giả lập quyền hiện có của user (thường lấy từ bảng permission join với role)
-        setAssignedPermissions(["perm_1", "perm_2", "perm_3"]); 
 
-      } catch (error) {
+        // 2. Lấy thông tin User theo ID
+        const userRes = await fetch(`${API_URL}/User/${id}`, { headers: getAuthHeaders() });
+        if (!userRes.ok) throw new Error(`Lỗi tải thông tin người dùng (Mã: ${userRes.status})`);
+        const userData = await userRes.json();
+        
+        // Đổ dữ liệu user lấy được vào formData
+        setFormData({
+          firstName: userData.firstName || "",
+          lastName: userData.lastName || "",
+          email: userData.email || "",
+          phone: userData.phone || "",
+          designation: userData.designation || "",
+          roleId: userData.role?.id || userData.roleId || "",
+        });
+
+      } catch (error: any) {
         console.error("Lỗi tải dữ liệu:", error);
+        alert(error.message || "Không thể tải dữ liệu.");
       } finally {
         setLoading(false);
       }
@@ -74,51 +67,36 @@ const UserPermissionsForm = () => {
 
     if (id) fetchData();
   }, [id]);
-
-  // Xử lý khi chọn Role (thường khi đổi role, hệ thống tự gán quyền mặc định của role đó)
-  const handleRoleChange = (e) => {
-    const newRoleId = e.target.value;
-    setSelectedRole(newRoleId);
-    
-    // Logic giả lập: Nếu chọn Admin thì có tất cả quyền, chọn Staff thì ít quyền
-    if(newRoleId === "role_admin") {
-      setAssignedPermissions(permissions.map(p => p.id));
-    } else {
-      setAssignedPermissions(["perm_1", "perm_4"]); // Staff chỉ được xem và thêm
-    }
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
-  // Xử lý bật/tắt Permission Checkbox
-  const handlePermissionToggle = (permId) => {
-    setAssignedPermissions(prev => 
-      prev.includes(permId) 
-        ? prev.filter(id => id !== permId) 
-        : [...prev, permId]
-    );
-  };
-
-  // Submit form cập nhật quyền
-  const handleSubmit = async (e) => {
+    const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     
     try {
-      // Gọi API cập nhật (PUT /users/:id hoặc API phân quyền riêng)
-      console.log("Đang lưu:", { userId: id, roleId: selectedRole, permissions: assignedPermissions });
-      
-      // const res = await fetch(`${API_URL}/users/${id}`, {
-      //   method: 'PUT',
-      //   headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      //   body: JSON.stringify({ roleId: selectedRole, permissions: assignedPermissions })
-      // });
+      const res = await fetch(`${API_URL}/User/${id}`, {
+        method: "PUT",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(formData),
+      });
 
-      // Giả lập delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      alert("Cập nhật phân quyền thành công!");
-      router.push("/admin/users"); // Quay lại trang danh sách
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        throw new Error(errorData?.message || "Cập nhật thất bại");
+      }
 
-    } catch (error) {
-      alert("Có lỗi xảy ra khi lưu!");
+      alert("Cập nhật thông tin và phân quyền thành công!");
+      router.push("/blogs/blog-grid");
+
+    } catch (error: any) {
+      console.error(error);
+      alert(error.message || "Có lỗi xảy ra khi lưu!");
     } finally {
       setSaving(false);
     }
@@ -134,39 +112,103 @@ const UserPermissionsForm = () => {
 
   return (
     <>
-      <Breadcrumb title={"Phân quyền người dùng"} pages={["Người dùng", "Phân quyền"]} />
+      <Breadcrumb title={"Chỉnh sửa & Phân quyền"} pages={["Người dùng", "Chỉnh sửa"]} />
       
       <section className="overflow-hidden py-20 bg-gray-2">
         <div className="max-w-[850px] w-full mx-auto px-4 sm:px-8 xl:px-0">
           
           <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-1 overflow-hidden">
             
-            {/* Header - Thông tin User (Thay thế cho phần Header Image của Blog) */}
+            {/* Header */}
             <div className="bg-gradient-to-r from-blue to-blue-500 p-8 text-white">
               <div className="flex items-center gap-5">
-                <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-white/30 bg-gray-2 flex-shrink-0">
-                  <Image
-                    src={user?.avatar || "/images/users/user-default.jpg"}
-                    alt={user?.firstName}
-                    width={80}
-                    height={80}
-                    className="object-cover"
-                  />
+                <div className="w-24 h-24 rounded-full border-4 border-white/30 bg-white/20 flex-shrink-0 flex items-center justify-center text-4xl font-bold uppercase">
+                  {formData.firstName ? formData.firstName.charAt(0) : "U"}
                 </div>
                 <div>
-                  <h2 className="text-2xl font-semibold">{user?.firstName} {user?.lastName}</h2>
-                  <p className="text-white/80 text-sm mt-1">{user?.email} | {user?.designation}</p>
+                  {/* Hiển thị realtime tên khi đang gõ */}
+                  <h2 className="text-2xl font-semibold">{formData.firstName} {formData.lastName}</h2>
+                  <p className="text-white/80 text-sm mt-1">{formData.email}</p>
                 </div>
               </div>
             </div>
 
+            {/* Thông tin chi tiết (Đã chuyển thành Input) */}
+            <div className="p-8 border-b border-gray-3">
+              <h3 className="font-medium text-dark text-lg mb-6">Thông tin chi tiết</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-8">
+                
+                <div>
+                  <label className="block text-gray-500 text-sm mb-2 font-medium">Họ <span className="text-red-500">*</span></label>
+                  <input 
+                    type="text" 
+                    name="firstName"
+                    value={formData.firstName}
+                    onChange={handleInputChange}
+                    className="w-full bg-gray-2 border border-gray-3 rounded-lg py-3 px-4 text-dark focus:outline-none focus:border-blue"
+                    placeholder="Nhập họ"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-500 text-sm mb-2 font-medium">Tên <span className="text-red-500">*</span></label>
+                  <input 
+                    type="text" 
+                    name="lastName"
+                    value={formData.lastName}
+                    onChange={handleInputChange}
+                    className="w-full bg-gray-2 border border-gray-3 rounded-lg py-3 px-4 text-dark focus:outline-none focus:border-blue"
+                    placeholder="Nhập tên"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-500 text-sm mb-2 font-medium">Email</label>
+                  <input 
+                    type="email" 
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    className="w-full bg-gray-2 border border-gray-3 rounded-lg py-3 px-4 text-dark focus:outline-none focus:border-blue"
+                    placeholder="example@domain.com"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-500 text-sm mb-2 font-medium">Số điện thoại</label>
+                  <input 
+                    type="text" 
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    className="w-full bg-gray-2 border border-gray-3 rounded-lg py-3 px-4 text-dark focus:outline-none focus:border-blue"
+                    placeholder="0909123456"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-gray-500 text-sm mb-2 font-medium">Chức danh / Địa chỉ</label>
+                  <input 
+                    type="text" 
+                    name="designation"
+                    value={formData.designation}
+                    onChange={handleInputChange}
+                    className="w-full bg-gray-2 border border-gray-3 rounded-lg py-3 px-4 text-dark focus:outline-none focus:border-blue"
+                    placeholder="Nhập chức danh hoặc địa chỉ"
+                  />
+                </div>
+
+              </div>
+            </div>
+
+            {/* Phân quyền Role */}
             <div className="p-8">
-              {/* Chọn Vai trò (Role) */}
               <div className="mb-8">
                 <label className="block text-dark font-medium text-lg mb-3">Vai trò (Role)</label>
                 <select
-                  value={selectedRole}
-                  onChange={handleRoleChange}
+                  name="roleId"
+                  value={formData.roleId}
+                  onChange={handleInputChange}
                   className="w-full bg-gray-2 border border-gray-3 rounded-lg py-3 px-4 text-dark focus:outline-none focus:border-blue"
                 >
                   <option value="">-- Chọn vai trò --</option>
@@ -174,39 +216,11 @@ const UserPermissionsForm = () => {
                     <option key={role.id} value={role.id}>{role.name}</option>
                   ))}
                 </select>
-                <p className="text-gray-400 text-sm mt-2">Khi thay đổi vai trò, các quyền mặc định sẽ được áp dụng bên dưới.</p>
+                <p className="text-gray-400 text-sm mt-2">
+                  Khi gán vai trò mới, toàn bộ quyền (Permissions) của người dùng sẽ được tính theo vai trò này.
+                </p>
               </div>
 
-              {/* Chọn Quyền chi tiết (Permissions) */}
-              <div className="mb-8">
-                <h3 className="font-medium text-dark text-lg mb-4">Quy hạn hệ thống (Permissions)</h3>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {permissions.map(perm => (
-                    <label 
-                      key={perm.id} 
-                      className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-all ${
-                        assignedPermissions.includes(perm.id) 
-                          ? 'bg-blue/5 border-blue text-blue' 
-                          : 'bg-white border-gray-3 text-gray-600 hover:border-gray-4'
-                      }`}
-                    >
-                      <input 
-                        type="checkbox" 
-                        className="w-5 h-5 rounded border-gray-300 text-blue focus:ring-blue"
-                        checked={assignedPermissions.includes(perm.id)}
-                        onChange={() => handlePermissionToggle(perm.id)}
-                      />
-                      <div>
-                        <p className="font-medium text-sm">{perm.name}</p>
-                        <p className="text-xs text-gray-400">{perm.description}</p>
-                      </div>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* Actions - Nút bấm (Thay thế cho phần Tags & Social của Blog) */}
               <div className="flex items-center justify-end gap-4 pt-6 border-t border-gray-3">
                 <button 
                   type="button" 
