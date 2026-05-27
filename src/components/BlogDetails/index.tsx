@@ -42,12 +42,9 @@ const UserPermissionsForm = () => {
         const rolesData = await rolesRes.json();
         setRoles(rolesData);
 
-        // 2. Lấy thông tin User theo ID
         const userRes = await fetch(`${API_URL}/User/${id}`, { headers: getAuthHeaders() });
         if (!userRes.ok) throw new Error(`Lỗi tải thông tin người dùng (Mã: ${userRes.status})`);
         const userData = await userRes.json();
-        
-        // Đổ dữ liệu user lấy được vào formData
         setFormData({
           firstName: userData.firstName || "",
           lastName: userData.lastName || "",

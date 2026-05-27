@@ -37,12 +37,7 @@ const SingleOrder = ({ orderItem, refreshOrders, currentUser }) =>{
             {orderItem.status}
           </p>
         </div>
-        
-        <div className="min-w-[213px]">
-          <p className="text-custom-sm text-dark">
-            {orderItem.user?.firstName} {orderItem.user?.lastName}
-          </p>
-        </div>
+      
 
         <div className="min-w-[113px]">
           <p className="text-custom-sm text-dark font-medium">
@@ -65,7 +60,6 @@ const SingleOrder = ({ orderItem, refreshOrders, currentUser }) =>{
               {orderItem.status}
             </span>
          </p>
-         <p className="text-custom-sm text-dark"><span className="font-bold pr-2">Customer:</span> {orderItem.user?.firstName} {orderItem.user?.lastName}</p>
          <p className="text-custom-sm text-dark"><span className="font-bold pr-2">Total:</span> ${Number(orderItem.finalAmount || 0).toFixed(2)}</p>
          
          <div className="mt-2">

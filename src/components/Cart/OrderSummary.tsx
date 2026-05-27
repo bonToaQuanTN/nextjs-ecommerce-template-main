@@ -4,7 +4,8 @@ import { useRouter } from "next/navigation";
 import { selectTotalPrice } from "@/redux/features/cartItem-slide";
 import { getToken } from "@/service/map/lib/token";
 
-const OrderSummary = () => {
+// ✅ 1. Khai báo nhận prop address
+const OrderSummary = ({ address }: { address: string }) => {
   const cartItems = useAppSelector((state) => state.cart?.cartItems || []);
   const totalPrice = useAppSelector(selectTotalPrice);
 
@@ -13,6 +14,12 @@ const OrderSummary = () => {
 
   const handleCheckout = async () => {
     if (cartItems.length === 0) return;
+
+    // ✅ 2. Kiểm tra xem người dùng đã nhập địa chỉ chưa
+    if (!address.trim()) {
+      alert("Vui lòng nhập địa chỉ giao hàng!");
+      return;
+    }
     
     try {
       setIsProcessing(true);
@@ -23,6 +30,7 @@ const OrderSummary = () => {
         router.push('/signin');
         return;
       }
+
       const orderRes = await fetch('/api/orders/checkout', {
         method: 'POST',
         headers: { 
@@ -30,7 +38,8 @@ const OrderSummary = () => {
           'Authorization': `Bearer ${token}` 
         },
         body: JSON.stringify({ 
-          shippingAddress: "Địa chỉ mặc định từ form billing", 
+          // ✅ 3. Truyền biến address thật vào đây
+          shippingAddress: address, 
           discountId: null 
         })
       });
@@ -46,6 +55,7 @@ const OrderSummary = () => {
       if (!realOrderId) {
         throw new Error("Không lấy được ID đơn hàng từ server");
       }
+
       const stripeRes = await fetch('/api/stripe/checkout', {
         method: "POST",
         headers: {

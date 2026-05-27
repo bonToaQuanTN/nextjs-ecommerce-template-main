@@ -4,6 +4,7 @@ import toast from "react-hot-toast";
 const EditOrder = ({ order, toggleModal, refreshOrders }) => {
   const [currentStatus, setCurrentStatus] = useState(order?.status || "PENDING");
   const [isLoading, setIsLoading] = useState(false);
+  const isLocked = order?.status === "PAID";
 
   const handleChanege = (e) => {
     setCurrentStatus(e.target.value);
@@ -11,6 +12,8 @@ const EditOrder = ({ order, toggleModal, refreshOrders }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isLocked) return; 
+
     if (!currentStatus) {
       toast.error("Please select a status");
       return;
@@ -45,28 +48,33 @@ const EditOrder = ({ order, toggleModal, refreshOrders }) => {
 
   return (
     <div className="w-full px-10 py-5">
-      <h3 className="text-lg font-bold mb-4 text-dark">Update Order Status</h3>
+      <h3 className="text-lg font-bold mb-4 text-dark">Trạng thái đơn hàng</h3>
+      
+      {isLocked && (
+        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 text-yellow-700 text-sm rounded-lg">
+          Đơn hàng đã thanh toán (PAID) nên không thể thay đổi trạng thái.
+        </div>
+      )}
+
       <div className="w-full">
         <select
-          className="w-full rounded-[10px] border border-gray-3 bg-gray-1 text-dark py-3.5 px-5 text-custom-sm"
+          className="w-full rounded-[10px] border border-gray-3 bg-gray-1 text-dark py-3.5 px-5 text-custom-sm disabled:cursor-not-allowed disabled:opacity-60"
           name="status"
           id="status"
           value={currentStatus}
           onChange={handleChanege}
+          disabled={isLocked} 
         >
-          {/* Các giá trị này PHẢI khớp với logic Backend của bạn */}
           <option value="PENDING">Pending</option>
-          <option value="PROCESSING">Processing</option>
-          <option value="PAID">Paid / Delivered</option>
           <option value="CANCELLED">Cancelled</option>
         </select>
 
         <button
-          className="mt-5 w-full rounded-[10px] border border-blue-1 bg-blue-1 text-white py-3.5 px-5 text-custom-sm bg-blue disabled:opacity-50"
+          className="mt-5 w-full rounded-[10px] border border-blue-1 bg-blue-1 text-white py-3.5 px-5 text-custom-sm bg-blue disabled:opacity-50 disabled:cursor-not-allowed"
           onClick={handleSubmit}
-          disabled={isLoading}
+          disabled={isLoading || isLocked}
         >
-          {isLoading ? "Saving..." : "Save Changes"}
+          {isLoading ? "Saving..." : "Lưu thay đổi"}
         </button>
       </div>
     </div>

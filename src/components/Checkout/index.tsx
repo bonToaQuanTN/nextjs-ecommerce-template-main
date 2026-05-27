@@ -146,12 +146,10 @@ const Checkout = () => {
                   </div>
                 </div>
 
-                {/* Truyền props để áp dụng mã giảm giá */}
                 <Coupon setDiscountId={setDiscountId} setDiscountRate={setDiscountRate} />
                 <ShippingMethod />
                 <PaymentMethod />
 
-                {/* NÚT THANH TOÁN STRIPE */}
                 <button
                   type="submit"
                   disabled={loading || cartItems.length === 0}

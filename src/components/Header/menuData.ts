@@ -50,12 +50,6 @@ export const menuData: Menu[] = [
         path: "/shop-without-sidebar",
       },
       {
-        id: 64,
-        title: "Thanh Toán",
-        newTab: false,
-        path: "/checkout",
-      },
-      {
         id: 65,
         title: "Giỏ hàng",
         newTab: false,

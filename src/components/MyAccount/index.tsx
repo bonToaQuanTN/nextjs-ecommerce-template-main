@@ -2,13 +2,14 @@
 import React, { useState, useEffect } from "react";
 import Breadcrumb from "../Common/Breadcrumb";
 import AddressModal from "./AddressModal";
-import Orders from "../Orders";
+import Orders from "@/components/Orders";
 import axiosInstance from "@/service/api-client";
-
+//import Orders from "@/components/MyAccount/Orders";
 const MyAccount = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [addressModal, setAddressModal] = useState(false);
   const [user, setUser] = useState({
+    id: "",
     firstName: "",
     lastName: "",
     email: "",
@@ -27,6 +28,7 @@ const MyAccount = () => {
         const res = await axiosInstance.get("/User/profile");
         const data = res.data;
         setUser({
+          id: data.id || "",
           firstName: data.firstName || "",
           lastName: data.lastName || "",
           email: data.email || "",
@@ -42,19 +44,31 @@ const MyAccount = () => {
     };
     fetchProfile();
   }, []);
-  const handleAccountDetailsSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+      const handleAccountDetailsSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
-      const res = await axiosInstance.put("/User/profile", {
+      const res = await axiosInstance.put(`/User/profile/${user.id}`, {
+        id: user.id,
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
         phone: user.phone,
         designation: user.designation,
       });
-      setUser(res.data);
+      
+      const updatedData = res.data;
+      setUser({
+        id: updatedData.id || user.id || "",
+        firstName: updatedData.firstName || "",
+        lastName: updatedData.lastName || "",
+        email: updatedData.email || "",
+        phone: updatedData.phone || "",
+        designation: updatedData.designation || "",
+        role: updatedData.role?.name || user.role || "Guest", 
+      });
+
       alert("Cập nhật thông tin thành công!");
-    } catch (error) {
+    } catch (error: any) {
       alert("Lỗi: " + (error.response?.data?.message || "Không thể cập nhật"));
     }
   };
@@ -64,7 +78,7 @@ const MyAccount = () => {
     if (!newPassword) return alert("Vui lòng nhập mật khẩu mới");
     
     try {
-      await axiosInstance.put("/User/profile", { password: newPassword });
+      await axiosInstance.put(`/User/profile/${user.id}`, { password: newPassword });
       alert("Đổi mật khẩu thành công!");
       setNewPassword("");
     } catch (error) {

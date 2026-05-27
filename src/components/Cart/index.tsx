@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react"; // Thêm useState
 import Discount from "./Discount";
 import OrderSummary from "./OrderSummary";
 import { useAppSelector, useAppDispatch } from "@/redux/store";
@@ -12,9 +12,11 @@ import { getToken } from "@/service/map/lib/token";
 const Cart = () => {
   const dispatch = useAppDispatch();
 
-  // ✅ Sửa selector cho đúng state mới: state.cart.cartItems
   const cartItems = useAppSelector((state) => state.cart?.cartItems || []);
   const loading = useAppSelector((state) => state.cart?.loading || false);
+
+  // ✅ State chỉ chứa 1 ô địa chỉ
+  const [address, setAddress] = useState("");
 
   useEffect(() => {
     const token = getToken();
@@ -22,6 +24,7 @@ const Cart = () => {
       dispatch(fetchCartAsync());
     }
   }, [dispatch]);
+  
   if (loading && cartItems.length === 0) {
     return (
       <>
@@ -82,9 +85,21 @@ const Cart = () => {
               </div>
             </div>
 
-            <div className="flex flex-col lg:flex-row gap-7.5 xl:gap-11 mt-9">
+            {/* ✅ KHỐI NHẬP ĐỊA CHỈ ĐƠN GIẢN */}
+            <div className="bg-white rounded-[10px] shadow-1 p-6 sm:p-7.5 mt-7.5">
+              <h3 className="font-medium text-dark text-lg mb-3">Địa chỉ giao hàng</h3>
+              <input
+                type="text"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="Nhập địa chỉ giao hàng của bạn..."
+                className="w-full border border-gray-3 rounded-md py-3 px-4 text-dark outline-none focus:border-blue transition-colors bg-transparent"
+              />
+            </div>
+
+            <div className="flex flex-col lg:flex-row gap-7.5 xl:gap-11 mt-7.5">
               <Discount />
-              <OrderSummary />
+              <OrderSummary address={address}/>
             </div>
           </div>
         </section>
