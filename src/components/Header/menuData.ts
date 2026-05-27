@@ -88,23 +88,12 @@ export const menuData: Menu[] = [
         path: "/blogs/blog-grid",
       },
       {
-        id: 74,
-        title: "Quyền người dùng",
-        newTab: false,
-        path: "/blogs/blog-details",
-      },
-      {
         id: 71,
         title: "Tổng quan kho",
         newTab: false,
         path: "/blogs/blog-grid-with-sidebar",
       },
-      {
-        id: 73,
-        title: "Chi tiết kho",
-        newTab: false,
-        path: "/blogs/blog-details-with-sidebar",
-      },
+
     ],
   },
 ];

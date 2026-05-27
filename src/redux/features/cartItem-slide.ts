@@ -186,8 +186,7 @@ export const updateCartItemAsync = createAsyncThunk(
   }
 );
 
-export const removeCartItemAsync = createAsyncThunk(
-  "cart/removeCartItemAsync",
+export const removeCartItemAsync = createAsyncThunk("cart/removeCartItemAsync",
   async (cartItemId: string, thunkAPI) => {
     try {
       const res = await fetch(`${API_BASE}/cart-items/${cartItemId}`, {
@@ -280,6 +279,7 @@ export const selectTotalPrice = (state: any) => {
     return total + price * qty;
   }, 0);
 };
+
 
 export const { addItemToCart, setCartId, clearCart, clearError } = cartSlice.actions;
 export default cartSlice.reducer;

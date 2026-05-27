@@ -11,14 +11,22 @@ import { getClientSideProducts, getClientSideCategories } from "@/components/Sho
 import SingleGridItem from "../Shop/SingleGridItem";
 import SingleListItem from "../Shop/SingleListItem";
 
+// 1. IMPORT REDUX DISPATCH VÀ THUNK
+import { useDispatch } from "react-redux";
+import { AppDispatch } from "@/redux/store";
+import { addItemToCartAsync } from "@/redux/features/cartItem-slide";
+
 const ShopWithSidebar = () => {
+  // 2. KHỞI TẠO DISPATCH
+  const dispatch = useDispatch<AppDispatch>();
+
   const [productStyle, setProductStyle] = useState("grid");
   const [productSidebar, setProductSidebar] = useState(false);
   const [stickyMenu, setStickyMenu] = useState(false);
-  const [searchQuery, setSearchQuery] = useState(""); // Giá trị tạm thời trong ô input
-  const [activeSearch, setActiveSearch] = useState<string | null>(null); // Giá trị thật sự gửi đi gọi API
+  const [searchQuery, setSearchQuery] = useState(""); 
+  const [activeSearch, setActiveSearch] = useState<string | null>(null); 
   
-  const [products, setProducts] = useState([]);
+  const [products, setProducts] = useState<any[]>([]); // Thêm kiểu any[] để dễ xử lý
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -26,7 +34,7 @@ const ShopWithSidebar = () => {
   const [categories, setCategories] = useState([]);
   const [selectedCategoryName, setSelectedCategoryName] = useState<string | null>(null);
 
-   const handleStickyMenu = () => {
+  const handleStickyMenu = () => {
     if (window.scrollY >= 80) {
       setStickyMenu(true);
     } else {
@@ -34,16 +42,28 @@ const ShopWithSidebar = () => {
     }
   };
 
+  // 3. TẠO HÀM XỬ LÝ THÊM VÀO GIỎ HÀNG
+  const handleAddToCart = async (product: any) => {
+    try {
+      // Mặc định số lượng là 1 khi thêm từ danh sách
+      await dispatch(addItemToCartAsync({ item: product, quantity: 1 })).unwrap();
+      alert(`Đã thêm "${product.title || product.name}" vào giỏ hàng!`);
+    } catch (error: any) {
+      console.error("Lỗi thêm vào giỏ hàng:", error);
+      alert(error || "Thêm vào giỏ hàng thất bại. Vui lòng đăng nhập!");
+    }
+  };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setActiveSearch(searchQuery); 
     setCurrentPage(1); 
   };
+
   useEffect(() => {
     window.addEventListener("scroll", handleStickyMenu);
 
-    function handleClickOutside(event) {
+    function handleClickOutside(event: any) {
       if (!event.target.closest(".sidebar-content")) {
         setProductSidebar(false);
       }
@@ -59,7 +79,6 @@ const ShopWithSidebar = () => {
     };
   }, []);
 
-  // 2. useEffect ĐỂ LẤY DANH SÁCH CATEGORIES KHI LOAD TRANG
   useEffect(() => {
     const fetchCategories = async () => {
       const cats = await getClientSideCategories();
@@ -84,6 +103,7 @@ const ShopWithSidebar = () => {
 
     fetchProducts();
   }, [currentPage, selectedCategoryName]);
+
   const handleCategorySelect = (categoryName: string | null) => {
     setSelectedCategoryName(categoryName);
     setCurrentPage(1);
@@ -104,7 +124,6 @@ const ShopWithSidebar = () => {
               productSidebar ? "translate-x-0 bg-white p-5 h-screen overflow-y-auto" : "-translate-x-full"
             }`}>
               
-              {/* 5. TRUYỀN PROPS VÀO CATEGORYDROPDOWN */}
               <CategoryDropdown 
                 categories={categories} 
                 activeCategoryName={selectedCategoryName}
@@ -116,26 +135,33 @@ const ShopWithSidebar = () => {
             </div>
 
             <div className="xl:max-w-[870px] w-full">
-              {/* ... Phần header và sort giữ nguyên ... */}
-              
               <div className={`${productStyle === "grid" ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-7.5 gap-y-9" : "flex flex-col gap-7.5"}`}>
                 {loading ? (
                   <div className="col-span-full text-center py-20 text-dark-4">
-                     <span className="animate-pulse">Loading products...</span>
+                     <span className="animate-pulse">Đang tải sản phẩm...</span>
                   </div>
                 ) : (
                   products.map((item) =>
                     productStyle === "grid" ? (
-                      <SingleGridItem item={item} key={item.id} />
+                      // 4. TRUYỀN PROP onAddToCart XUỐNG COMPONENT CON
+                      <SingleGridItem 
+                        item={item} 
+                        key={item.id} 
+                        onAddToCart={handleAddToCart} 
+                      />
                     ) : (
-                      <SingleListItem item={item} key={item.id} />
+                      <SingleListItem 
+                        item={item} 
+                        key={item.id} 
+                        onAddToCart={handleAddToCart} 
+                      />
                     )
                   )
                 )}
                 
                 {!loading && products.length === 0 && (
                   <div className="col-span-full text-center py-20 text-dark-4">
-                    No products found in this category.
+                    Không có sản phẩm nào trong danh mục
                   </div>
                 )}
               </div>
