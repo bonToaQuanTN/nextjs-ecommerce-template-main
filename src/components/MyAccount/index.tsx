@@ -47,7 +47,7 @@ const MyAccount = () => {
       const handleAccountDetailsSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
-      const res = await axiosInstance.put(`/User/profile/${user.id}`, {
+      const res = await axiosInstance.put(`/User/${user.id}`, {
         id: user.id,
         firstName: user.firstName,
         lastName: user.lastName,
@@ -78,7 +78,7 @@ const MyAccount = () => {
     if (!newPassword) return alert("Vui lòng nhập mật khẩu mới");
     
     try {
-      await axiosInstance.put(`/User/profile/${user.id}`, { password: newPassword });
+      await axiosInstance.put(`/User/${user.id}`, { password: newPassword });
       alert("Đổi mật khẩu thành công!");
       setNewPassword("");
     } catch (error) {
@@ -214,7 +214,7 @@ const MyAccount = () => {
                     <label className="block mb-2.5">Mật khẩu mới</label>
                     <input type="password" required value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="rounded-md border border-gray-3 bg-gray-1 w-full py-2.5 px-5 outline-none focus:ring-2 focus:ring-blue/20" />
                   </div>
-                  <button type="submit" className="inline-flex font-medium text-white bg-blue py-3 px-7 rounded-md ease-out duration-200 hover:bg-blue-dark">Change Password</button>
+                  <button type="submit" className="inline-flex font-medium text-white bg-blue py-3 px-7 rounded-md ease-out duration-200 hover:bg-blue-dark">Thay đổi mật khẩu</button>
                   <p className="text-xs text-gray-500 mt-2">*(Backend hiện tại không yêu cầu nhập mật khẩu cũ. Nếu muốn bảo mật hơn, hãy sửa Service Backend để yêu cầu oldPassword).</p>
                 </form>
               </div>

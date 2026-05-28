@@ -13,8 +13,8 @@ const UserPermissionsForm = () => {
   const [roles, setRoles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false); 
   
-  // Quản lý toàn bộ dữ liệu form bằng 1 state
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -36,15 +36,21 @@ const UserPermissionsForm = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // 1. Lấy danh sách Roles
-        const rolesRes = await fetch(`${API_URL}/roles`, { headers: getAuthHeaders() });
-        if (!rolesRes.ok) throw new Error(`Lỗi tải danh sách vai trò (Mã: ${rolesRes.status})`);
-        const rolesData = await rolesRes.json();
-        setRoles(rolesData);
-
+        let currentUserIsAdmin = false;
+        const profileRes = await fetch(`${API_URL}/User/profile`, { headers: getAuthHeaders() });
+        if (profileRes.ok) {
+          const profileData = await profileRes.json();
+          const roleName = profileData.role?.name?.toLowerCase() || "";
+          if (roleName.includes("admin")) {
+            currentUserIsAdmin = true;
+          }
+        }
+        
+        setIsAdmin(currentUserIsAdmin);
         const userRes = await fetch(`${API_URL}/User/${id}`, { headers: getAuthHeaders() });
         if (!userRes.ok) throw new Error(`Lỗi tải thông tin người dùng (Mã: ${userRes.status})`);
         const userData = await userRes.json();
+        
         setFormData({
           firstName: userData.firstName || "",
           lastName: userData.lastName || "",
@@ -53,6 +59,12 @@ const UserPermissionsForm = () => {
           designation: userData.designation || "",
           roleId: userData.role?.id || userData.roleId || "",
         });
+        if (currentUserIsAdmin) {
+          const rolesRes = await fetch(`${API_URL}/roles`, { headers: getAuthHeaders() });
+          if (!rolesRes.ok) throw new Error(`Lỗi tải danh sách vai trò (Mã: ${rolesRes.status})`);
+          const rolesData = await rolesRes.json();
+          setRoles(rolesData);
+        }
 
       } catch (error: any) {
         console.error("Lỗi tải dữ liệu:", error);
@@ -64,6 +76,7 @@ const UserPermissionsForm = () => {
 
     if (id) fetchData();
   }, [id]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -72,15 +85,20 @@ const UserPermissionsForm = () => {
     }));
   };
 
-    const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     
     try {
+      const payloadToSend = { ...formData };
+      if (!isAdmin) {
+        delete payloadToSend.roleId;
+      }
+
       const res = await fetch(`${API_URL}/User/${id}`, {
         method: "PUT",
         headers: getAuthHeaders(),
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payloadToSend), // Gửi payload đã xử lý
       });
 
       if (!res.ok) {
@@ -88,8 +106,8 @@ const UserPermissionsForm = () => {
         throw new Error(errorData?.message || "Cập nhật thất bại");
       }
 
-      alert("Cập nhật thông tin và phân quyền thành công!");
-      router.push("/blogs/blog-grid");
+      alert("Cập nhật thông tin thành công!");
+      router.back(); // Đưa người dùng quay lại trang trước
 
     } catch (error: any) {
       console.error(error);
@@ -109,7 +127,7 @@ const UserPermissionsForm = () => {
 
   return (
     <>
-      <Breadcrumb title={"Chỉnh sửa & Phân quyền"} pages={["Người dùng", "Chỉnh sửa"]} />
+      <Breadcrumb title={"Chỉnh sửa thông tin"} pages={["Người dùng", "Chỉnh sửa"]} />
       
       <section className="overflow-hidden py-20 bg-gray-2">
         <div className="max-w-[850px] w-full mx-auto px-4 sm:px-8 xl:px-0">
@@ -123,114 +141,69 @@ const UserPermissionsForm = () => {
                   {formData.firstName ? formData.firstName.charAt(0) : "U"}
                 </div>
                 <div>
-                  {/* Hiển thị realtime tên khi đang gõ */}
                   <h2 className="text-2xl font-semibold">{formData.firstName} {formData.lastName}</h2>
                   <p className="text-white/80 text-sm mt-1">{formData.email}</p>
                 </div>
               </div>
             </div>
 
-            {/* Thông tin chi tiết (Đã chuyển thành Input) */}
+            {/* Thông tin chi tiết */}
             <div className="p-8 border-b border-gray-3">
               <h3 className="font-medium text-dark text-lg mb-6">Thông tin chi tiết</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-8">
-                
+                {/* ... các input thông tin giữ nguyên ... */}
                 <div>
                   <label className="block text-gray-500 text-sm mb-2 font-medium">Họ <span className="text-red-500">*</span></label>
-                  <input 
-                    type="text" 
-                    name="firstName"
-                    value={formData.firstName}
-                    onChange={handleInputChange}
-                    className="w-full bg-gray-2 border border-gray-3 rounded-lg py-3 px-4 text-dark focus:outline-none focus:border-blue"
-                    placeholder="Nhập họ"
-                  />
+                  <input type="text" name="firstName" value={formData.firstName} onChange={handleInputChange} className="w-full bg-gray-2 border border-gray-3 rounded-lg py-3 px-4 text-dark focus:outline-none focus:border-blue" placeholder="Nhập họ" />
                 </div>
-
                 <div>
                   <label className="block text-gray-500 text-sm mb-2 font-medium">Tên <span className="text-red-500">*</span></label>
-                  <input 
-                    type="text" 
-                    name="lastName"
-                    value={formData.lastName}
-                    onChange={handleInputChange}
-                    className="w-full bg-gray-2 border border-gray-3 rounded-lg py-3 px-4 text-dark focus:outline-none focus:border-blue"
-                    placeholder="Nhập tên"
-                  />
+                  <input type="text" name="lastName" value={formData.lastName} onChange={handleInputChange} className="w-full bg-gray-2 border border-gray-3 rounded-lg py-3 px-4 text-dark focus:outline-none focus:border-blue" placeholder="Nhập tên" />
                 </div>
-
                 <div>
                   <label className="block text-gray-500 text-sm mb-2 font-medium">Email</label>
-                  <input 
-                    type="email" 
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    className="w-full bg-gray-2 border border-gray-3 rounded-lg py-3 px-4 text-dark focus:outline-none focus:border-blue"
-                    placeholder="example@domain.com"
-                  />
+                  <input type="email" name="email" value={formData.email} onChange={handleInputChange} className="w-full bg-gray-2 border border-gray-3 rounded-lg py-3 px-4 text-dark focus:outline-none focus:border-blue" placeholder="example@domain.com" />
                 </div>
-
                 <div>
                   <label className="block text-gray-500 text-sm mb-2 font-medium">Số điện thoại</label>
-                  <input 
-                    type="text" 
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    className="w-full bg-gray-2 border border-gray-3 rounded-lg py-3 px-4 text-dark focus:outline-none focus:border-blue"
-                    placeholder="0909123456"
-                  />
+                  <input type="text" name="phone" value={formData.phone} onChange={handleInputChange} className="w-full bg-gray-2 border border-gray-3 rounded-lg py-3 px-4 text-dark focus:outline-none focus:border-blue" placeholder="0909123456" />
                 </div>
-
                 <div className="sm:col-span-2">
                   <label className="block text-gray-500 text-sm mb-2 font-medium">Chức danh / Địa chỉ</label>
-                  <input 
-                    type="text" 
-                    name="designation"
-                    value={formData.designation}
-                    onChange={handleInputChange}
-                    className="w-full bg-gray-2 border border-gray-3 rounded-lg py-3 px-4 text-dark focus:outline-none focus:border-blue"
-                    placeholder="Nhập chức danh hoặc địa chỉ"
-                  />
+                  <input type="text" name="designation" value={formData.designation} onChange={handleInputChange} className="w-full bg-gray-2 border border-gray-3 rounded-lg py-3 px-4 text-dark focus:outline-none focus:border-blue" placeholder="Nhập chức danh hoặc địa chỉ" />
                 </div>
-
               </div>
             </div>
 
-            {/* Phân quyền Role */}
-            <div className="p-8">
-              <div className="mb-8">
-                <label className="block text-dark font-medium text-lg mb-3">Vai trò (Role)</label>
-                <select
-                  name="roleId"
-                  value={formData.roleId}
-                  onChange={handleInputChange}
-                  className="w-full bg-gray-2 border border-gray-3 rounded-lg py-3 px-4 text-dark focus:outline-none focus:border-blue"
-                >
-                  <option value="">-- Chọn vai trò --</option>
-                  {roles.map(role => (
-                    <option key={role.id} value={role.id}>{role.name}</option>
-                  ))}
-                </select>
-                <p className="text-gray-400 text-sm mt-2">
-                  Khi gán vai trò mới, toàn bộ quyền (Permissions) của người dùng sẽ được tính theo vai trò này.
-                </p>
+            {isAdmin && (
+              <div className="p-8">
+                <div className="mb-8">
+                  <label className="block text-dark font-medium text-lg mb-3">Vai trò (Role)</label>
+                  <select
+                    name="roleId"
+                    value={formData.roleId}
+                    onChange={handleInputChange}
+                    className="w-full bg-gray-2 border border-gray-3 rounded-lg py-3 px-4 text-dark focus:outline-none focus:border-blue"
+                  >
+                    <option value="">-- Chọn vai trò --</option>
+                    {roles.map(role => (
+                      <option key={role.id} value={role.id}>{role.name}</option>
+                    ))}
+                  </select>
+                  <p className="text-gray-400 text-sm mt-2">
+                    Khi gán vai trò mới, toàn bộ quyền (Permissions) của người dùng sẽ được tính theo vai trò này.
+                  </p>
+                </div>
               </div>
+            )}
 
+            {/* Nút bấm */}
+            <div className="p-8 pt-0">
               <div className="flex items-center justify-end gap-4 pt-6 border-t border-gray-3">
-                <button 
-                  type="button" 
-                  onClick={() => router.back()}
-                  className="py-3 px-8 rounded-md bg-gray-2 text-dark hover:bg-gray-3 ease-out duration-200"
-                >
+                <button type="button" onClick={() => router.back()} className="py-3 px-8 rounded-md bg-gray-2 text-dark hover:bg-gray-3 ease-out duration-200">
                   Hủy bỏ
                 </button>
-                <button 
-                  type="submit" 
-                  disabled={saving}
-                  className="py-3 px-8 rounded-md bg-blue text-white hover:bg-opacity-90 ease-out duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                >
+                <button type="submit" disabled={saving} className="py-3 px-8 rounded-md bg-blue text-white hover:bg-opacity-90 ease-out duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
                   {saving ? (
                     <>
                       <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -243,8 +216,8 @@ const UserPermissionsForm = () => {
                 </button>
               </div>
             </div>
-          </form>
 
+          </form>
         </div>
       </section>
     </>

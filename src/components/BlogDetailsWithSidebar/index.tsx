@@ -217,7 +217,7 @@ const ProductDetailPage = () => {
             </button>
             {!isEditing ? (
               <button onClick={handleEditClick} className="bg-blue text-white py-2 px-5 rounded-md hover:bg-opacity-90 transition">
-                ✏️ Chỉnh sửa thông tin SP
+                 Chỉnh sửa thông tin SP
               </button>
             ) : (
               <button onClick={() => setIsEditing(false)} className="bg-gray-2 text-dark py-2 px-5 rounded-md hover:bg-gray-3 transition">
