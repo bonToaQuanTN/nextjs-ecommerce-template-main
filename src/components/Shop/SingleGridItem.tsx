@@ -13,18 +13,17 @@ import Image from "next/image";
 const SingleGridItem = ({ item }: { item: Product }) => {
   const { openModal } = useModalContext();
   const dispatch = useDispatch<AppDispatch>();
-  const [isAdding, setIsAdding] = useState(false); // State quản lý trạng thái loading
+  const [isAdding, setIsAdding] = useState(false);
 
   const handleQuickViewUpdate = () => {
     dispatch(updateQuickView({ ...item }));
   };
 
   const handleAddToCart = async () => {
-    if (isAdding) return; // Chống click liên tục
+    if (isAdding) return;
     setIsAdding(true);
     
     try {
-      // Gọi API thêm vào giỏ hàng qua Redux Thunk
       await dispatch(addItemToCartAsync({ item, quantity: 1 })).unwrap();
       alert(`Đã thêm "${item.title}" vào giỏ hàng!`);
     } catch (error: any) {
@@ -96,12 +95,12 @@ const SingleGridItem = ({ item }: { item: Product }) => {
       </h3>
       {item.discountedPrice ? (
         <span className="flex items-center gap-2 font-medium text-lg">
-          <span className="text-dark">${item.discountedPrice.toFixed(2)}</span>
-          <span className="text-dark-4 line-through">${item.price.toFixed(2)}</span>
+          <span className="text-dark">${(Number(item.discountedPrice) || 0).toFixed(2)}</span>
+          <span className="text-dark-4 line-through">${(Number(item.price) || 0).toFixed(2)}</span>
         </span>
       ) : (
         <span className="font-medium text-lg text-dark">
-          ${item.price.toFixed(2)}
+          ${(Number(item.price) || 0).toFixed(2)}
         </span>
       )}
     </div>
