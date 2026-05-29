@@ -28,7 +28,6 @@ const CreateProductPage = () => {
     origin: ""
   });
 
-  // ✅ State cho Inventory (Tồn kho)
   const [quantity, setQuantity] = useState<number>(0);
   const [warehouseId, setWarehouseId] = useState<string>("");
 
@@ -48,7 +47,7 @@ const CreateProductPage = () => {
       try {
         const [allCats, allWhs] = await Promise.all([
           categoryApi.getAllFlatten(),
-          warehouseApi.getAllFlatten() // ✅ Gọi song song để tối ưu tốc độ
+          warehouseApi.getAllFlatten() 
         ]);
         setCategories(allCats);
         setWarehouses(allWhs);

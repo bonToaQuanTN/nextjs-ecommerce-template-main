@@ -2,7 +2,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
 const getAuthHeaders = (): HeadersInit => {
   const token = typeof window !== "undefined"
-      ? localStorage.getItem("access_token") || "": "";
+      ? localStorage.getItem('access_token') || "": "";
 
   const headers: HeadersInit = { "Content-Type": "application/json" };
   if (token) headers["Authorization"] = `Bearer ${token}`;
@@ -13,9 +13,15 @@ export const apiFetch = async <T = any>(
   endpoint: string,
   options?: RequestInit
 ): Promise<T> => {
+  // FIX: Gộp headers để tránh bị mất Authorization khi options có truyền headers
+  const mergedHeaders: HeadersInit = {
+    ...getAuthHeaders(),
+    ...options?.headers,
+  };
+
   const res = await fetch(`${API_BASE_URL}${endpoint}`, {
-    headers: getAuthHeaders(),
     ...options,
+    headers: mergedHeaders, // Đặt mergedHeaders sau cùng để đảm bảo nó là kết quả cuối cùng
   });
 
   if (!res.ok) {
@@ -27,6 +33,7 @@ export const apiFetch = async <T = any>(
 
   return res.json();
 };
+
 export interface Product {
   id: string;
   name: string;
@@ -95,20 +102,20 @@ export const productApi = {
   create: (dto: CreateProductDto) =>
     apiFetch<Product>("/products", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      // Đã bỏ headers ở đây vì getAuthHeaders() mặc định đã set "Content-Type": "application/json"
       body: JSON.stringify(dto),
     }),
 
-    update: (id: string, dto: Partial<CreateProductDto>) =>
+  update: (id: string, dto: Partial<CreateProductDto>) =>
     apiFetch<Product>(`/products/${id}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(dto),
     })
 };
 
 export const inventoryApi = {
   getAll: (page = 1) => apiFetch<PaginatedResponse<Inventory>>(`/inventories?page=${page}`),
+  
   getAllFlatten: async (maxPages = 20): Promise<Inventory[]> => {
     const all: Inventory[] = [];
     let page = 1;
@@ -129,14 +136,13 @@ export const inventoryApi = {
       body: JSON.stringify(dto),
     }),
 
-  update: (id: string, dto: Partial<Inventory>) =>apiFetch<Inventory>(`/inventories/${id}`, {
+  update: (id: string, dto: Partial<Inventory>) => apiFetch<Inventory>(`/inventories/${id}`, {
       method: "PUT",
       body: JSON.stringify(dto),
     }),
 
   delete: (id: string) => apiFetch<void>(`/inventories/${id}`, { method: "DELETE" }),
-  
-  };
+};
 
 export const warehouseApi = {
   getAll: (page = 1) =>
@@ -177,6 +183,7 @@ export const warehouseApi = {
 
 export const categoryApi = {
   getAll: (page = 1) => apiFetch<PaginatedResponse<Category>>(`/categories?page=${page}`),
+  
   getAllFlatten: async (maxPages = 20): Promise<Category[]> => {
     const all: Category[] = [];
     let page = 1;
@@ -191,10 +198,10 @@ export const categoryApi = {
 
     return all;
   },
+  
   getProductsByCategory: (name: string) =>
     apiFetch<PaginatedResponse<Product>>(`/categories/${encodeURIComponent(name)}/products`)
 };
-
 
 export const uploadApi = {
   uploadFile: async (file: File): Promise<string> => {
@@ -204,18 +211,18 @@ export const uploadApi = {
     // Lấy token nhưng KHÔNG set Content-Type để trình duyệt tự xử lý multipart boundary
     const token =
       typeof window !== "undefined"
-        ? localStorage.getItem("access_token") || ""
+        ? localStorage.getItem('access_token') || ""
         : "";
 
     const headers: HeadersInit = {};
     if (token) headers["Authorization"] = `Bearer ${token}`;
 
-    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+    // FIX: Xóa bỏ dòng const API_BASE_URL bị khai báo trùng ở đây
 
     const res = await fetch(`${API_BASE_URL}/upload`, {
       method: "POST",
       headers,
-      body: formData, // Gửi FormData thay vì JSON.stringify
+      body: formData,
     });
 
     if (!res.ok) {
@@ -225,11 +232,9 @@ export const uploadApi = {
 
     const data = await res.json();
     
-    // Backend trả về { message: 'Upload success', urls: [...] }
-    // Tùy vào việc urls là mảng hay chuỗi, ta lấy link ảnh ra
     if (Array.isArray(data.urls)) {
-      return data.urls[0]; // Lấy phần tử đầu tiên nếu là mảng
+      return data.urls[0];
     }
-    return data.urls; // Trả về trực tiếp nếu nó là string
+    return data.urls;
   },
 };

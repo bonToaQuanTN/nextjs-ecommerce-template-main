@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Product } from "@/types/product";
 import { useModalContext } from "@/app/context/QuickViewModalContext";
 import { updateQuickView } from "@/redux/features/quickView-slice";
-import { addItemToCartAsync } from "@/redux/features/cartItem-slide"; // Đổi sang Async
+import { addItemToCartAsync } from "@/redux/features/cartItem-slide"; 
 import { addItemToWishlist } from "@/redux/features/wishlist-slice";
 import { useDispatch } from "react-redux";
 import { AppDispatch } from "@/redux/store";
@@ -69,7 +69,7 @@ const SingleGridItem = ({ item }: { item: Product }) => {
             disabled={isAdding} 
             className={`inline-flex font-medium text-custom-sm py-[7px] px-5 rounded-[5px] bg-blue text-white ease-out duration-200 hover:bg-blue-dark ${isAdding ? "opacity-50 cursor-not-allowed" : ""}`}
           >
-            {isAdding ? "Adding..." : "Add to cart"}
+            {isAdding ? "Adding..." : "Thêm vào giỏ hàng"}
           </button>
 
           <button onClick={() => handleItemToWishList()} aria-label="button for favorite select" id="favOne" className="flex items-center justify-center w-9 h-9 rounded-[5px] shadow-1 ease-out duration-200 text-dark bg-white hover:text-blue">

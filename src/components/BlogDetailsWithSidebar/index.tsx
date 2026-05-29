@@ -1,231 +1,457 @@
 "use client";
 
-import React, { useEffect, useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import React, { useEffect, useState } from "react";
+import { useRouter, useParams, useSearchParams } from "next/navigation"; // ✅ Thêm useSearchParams
 import Image from "next/image";
-import Link from "next/link";
+import Breadcrumb from "../Common/Breadcrumb";
 import {
   productApi,
   inventoryApi,
+  warehouseApi,
   type Product,
   type Inventory,
+  type Warehouse,
 } from "@/service/map/inventory/inventory";
 
-// ─── Helper ───
-const getTotalStock = (productId: string, inventories: Inventory[]): number =>
-  inventories
-    .filter((inv) => inv.productId === productId)
-    .reduce((sum, inv) => sum + inv.quantity, 0);
+const getTotalStock = (invs: Inventory[]): number =>
+  invs.reduce((sum, inv) => sum + inv.quantity, 0);
 
-// ─── Component nội dung chính ───
-const ShopContent = () => {
-  const searchParams = useSearchParams();
-  const searchQuery = searchParams.get("search"); // Lấy từ khóa từ URL (VD: ?search=Màn hình)
+const ProductDetailPage = () => {
+  const router = useRouter();
+  const params = useParams();
+  const searchParams = useSearchParams(); // ✅ Khởi tạo hook lấy search params
+
+  const productId = params.id as string;
+  const searchQuery = searchParams.get('search'); // ✅ Nhận thông tin tìm kiếm từ URL
 
   // --- Data state ---
-  const [products, setProducts] = useState<Product[]>([]);
+  const [product, setProduct] = useState<Product | null>(null);
   const [inventories, setInventories] = useState<Inventory[]>([]);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
 
   // --- UI state ---
   const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [lastPage, setLastPage] = useState(1);
+  const [error, setError] = useState<string | null>(null);
 
-  // ─── 1. Fetch Tồn kho (Chạy 1 lần) ───
-  useEffect(() => {
-    const fetchInventories = async () => {
-      try {
-        const all = await inventoryApi.getAllFlatten();
-        setInventories(all);
-      } catch (err) {
-        console.error("Lỗi tải tồn kho:", err);
-      }
-    };
-    fetchInventories();
-  }, []);
+  // --- Product Edit State ---
+  const [isEditing, setIsEditing] = useState(false);
+  const [editFormData, setEditFormData] = useState<Partial<Product>>({});
+  const [savingProduct, setSavingProduct] = useState(false);
 
-  // ─── 2. Fetch Sản phẩm (Chạy lại khi search hoặc page thay đổi) ───
+  // --- Inventory Edit State ---
+  const [editingInvId, setEditingInvId] = useState<string | null>(null);
+  const [editInvData, setEditInvData] = useState<{ warehouseId: string; quantity: number }>({
+    warehouseId: "",
+    quantity: 0,
+  });
+  const [savingInv, setSavingInv] = useState(false);
+
+  // ─── Fetch dữ liệu ───
+  const fetchData = async () => {
+    try {
+      const [allInventories, allWarehouses] = await Promise.all([
+        inventoryApi.getAllFlatten(),
+        warehouseApi.getAllFlatten(),
+      ]);
+
+      const productInventories = allInventories.filter(
+        (inv) => inv.productId === productId
+      );
+
+      setInventories(productInventories);
+      setWarehouses(allWarehouses);
+    } catch (err) {
+      console.error("Fetch inventories failed:", err);
+    }
+  };
+
   useEffect(() => {
-    const fetchProducts = async () => {
+    if (!productId) return;
+
+    const loadInitial = async () => {
       setLoading(true);
+      setError(null);
       try {
-        let res;
-        if (searchQuery?.trim()) {
-          // ✅ Có từ khóa tìm kiếm -> Gọi API Search
-          res = await productApi.search(searchQuery.trim(), currentPage);
-        } else {
-          // ✅ Không có từ khóa -> Gọi API GetAll
-          res = await productApi.getAll(currentPage);
-        }
-
-        setProducts(res.data || []);
-        setLastPage(res.lastPage || 1);
-      } catch (err) {
-        console.error("Lỗi tải sản phẩm:", err);
-        setProducts([]);
+        const productRes = await productApi.getById(productId);
+        setProduct(productRes);
+        await fetchData();
+      } catch (err: any) {
+        console.error("Fetch product detail failed:", err);
+        setError("Không thể tải thông tin sản phẩm.");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchProducts();
-  }, [searchQuery, currentPage]); // Dependency array lắng nghe thay đổi
+    loadInitial();
+  }, [productId]);
 
-  // ─── Loading UI ───
+  // ─── Product Handlers ───
+  const handleEditClick = () => {
+    if (product) {
+      setEditFormData({
+        name: product.name,
+        price: Number(product.price) || 0,
+        unit: product.unit,
+        origin: product.origin,
+        description: product.description,
+      });
+    }
+    setIsEditing(true);
+  };
+
+  const handleSaveProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingProduct(true);
+    try {
+      const payload = {
+        ...editFormData,
+        price: editFormData.price ? Number(editFormData.price) : product?.price,
+      };
+      
+      const updatedProduct = await productApi.update(productId, payload);
+      setProduct(updatedProduct?.data || updatedProduct || product);
+      setIsEditing(false);
+    } catch (err) {
+      console.error("Update product failed:", err);
+    } finally {
+      setSavingProduct(false);
+    }
+  };
+
+  // ─── Inventory Handlers ───
+  const handleAddNewInv = () => {
+    setEditingInvId("new");
+    setEditInvData({ warehouseId: "", quantity: 0 });
+  };
+
+  const handleEditInv = (inv: Inventory) => {
+    setEditingInvId(inv.id);
+    setEditInvData({ warehouseId: inv.warehouseId, quantity: inv.quantity });
+  };
+
+  const handleCancelInv = () => {
+    setEditingInvId(null);
+  };
+
+  const handleSaveInv = async () => {
+    if (!editInvData.warehouseId) {
+      alert("Vui lòng chọn kho hàng");
+      return;
+    }
+    setSavingInv(true);
+    try {
+      if (editingInvId === "new") {
+        await inventoryApi.create({
+          productId: productId,
+          warehouseId: editInvData.warehouseId,
+          quantity: editInvData.quantity,
+        });
+      } else {
+        await inventoryApi.update(editingInvId, editInvData);
+      }
+      setEditingInvId(null);
+      await fetchData();
+    } catch (err: any) {
+      alert(err.message || "Lưu tồn kho thất bại");
+    } finally {
+      setSavingInv(false);
+    }
+  };
+
+  // ─── Helpers ───
+  const getWarehouseName = (whId: string) =>
+    warehouses.find((wh) => wh.id === whId)?.name || "Không xác định";
+
+  const getWarehouseAddress = (whId: string) =>
+    warehouses.find((wh) => wh.id === whId)?.address || "";
+
+  // ✅ Handler quay lại thông minh
+  const handleGoBack = () => {
+    if (searchQuery) {
+      // Nếu có từ khóa tìm kiếm, quay về trang danh sách kèm từ khóa
+      router.push(`/Products?search=${encodeURIComponent(searchQuery)}`);
+    } else {
+      // Ngược lại quay về trang trước đó
+      router.back();
+    }
+  };
+
+  // ─── Loading & Error UI ───
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px] bg-gray-2">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-4 border-blue border-t-transparent rounded-full animate-spin" />
-          <p className="text-gray-500">Đang tải sản phẩm...</p>
-        </div>
-      </div>
+      <>
+        <Breadcrumb title={"Chi tiết sản phẩm"} pages={["Dashboard", "Sản phẩm", "Chi tiết"]} />
+        <section className="overflow-hidden py-20 bg-gray-2">
+          <div className="max-w-[1170px] w-full mx-auto px-4 sm:px-8 xl:px-0 flex items-center justify-center min-h-[400px]">
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-10 h-10 border-4 border-blue border-t-transparent rounded-full animate-spin" />
+              <p className="text-gray-500">Đang tải dữ liệu...</p>
+            </div>
+          </div>
+        </section>
+      </>
     );
   }
 
+  if (error || !product) {
+    return (
+      <>
+        <Breadcrumb title={"Lỗi"} pages={["Dashboard", "Sản phẩm", "Lỗi"]} />
+        <section className="overflow-hidden py-20 bg-gray-2">
+          <div className="max-w-[1170px] w-full mx-auto px-4 sm:px-8 xl:px-0 flex items-center justify-center min-h-[400px]">
+            <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center max-w-md">
+              <p className="text-red-600 mb-4">{error || "Không tìm thấy sản phẩm."}</p>
+              <button onClick={handleGoBack} className="bg-blue text-white py-2 px-6 rounded-md hover:bg-opacity-90">
+                Quay lại
+              </button>
+            </div>
+          </div>
+        </section>
+      </>
+    );
+  }
+
+  const totalStock = getTotalStock(inventories);
+
   return (
-    <section className="overflow-hidden py-15 lg:py-20 bg-gray-2">
-      <div className="max-w-[1170px] w-full mx-auto px-4 sm:px-8 xl:px-0">
-        
-        {/* ─── Thông báo kết quả tìm kiếm ─── */}
-        {searchQuery && (
-          <div className="mb-8 bg-white rounded-xl shadow-1 p-4 flex items-center justify-between">
-            <p className="text-dark text-sm">
-              Kết quả tìm kiếm cho: <span className="font-bold text-blue">"{searchQuery}"</span> 
-              <span className="text-gray-400 ml-2">({products.length} sản phẩm)</span>
-            </p>
-            <Link href="/shop-without-sidebar" className="text-sm text-gray-500 hover:text-red-500 transition font-medium">
-              Xoá tìm kiếm ✕
-            </Link>
-          </div>
-        )}
+    <>
+      <Breadcrumb title={product.name} pages={["Dashboard", "Sản phẩm", product.name]} />
 
-        {/* ─── Danh sách sản phẩm ─── */}
-        {products.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-1 p-12 text-center">
-            <p className="text-gray-400 text-lg mb-4">Không tìm thấy sản phẩm phù hợp.</p>
-            <Link href="/shop-without-sidebar" className="bg-blue text-white py-2.5 px-6 rounded-md hover:bg-opacity-90 transition">
-              Xem tất cả sản phẩm
-            </Link>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-7.5">
-            {products.map((product) => {
-              const totalStock = getTotalStock(product.id, inventories);
-
-              return (
-                <div
-                  key={product.id}
-                  className="bg-white rounded-xl shadow-1 overflow-hidden group"
-                >
-                  {/* Ảnh sản phẩm */}
-                  <div className="relative w-full h-60 overflow-hidden">
-                    <Image
-                      src={product.thumbnail || "/images/products/default.jpg"}
-                      alt={product.name}
-                      layout="fill"
-                      objectFit="cover"
-                      className="group-hover:scale-105 transition-transform duration-300"
-                    />
-                    {/* Nút Add to cart hiện khi hover */}
-                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
-                       <button className="bg-blue text-white text-sm font-medium py-2.5 px-5 rounded-md hover:bg-opacity-90 shadow-lg whitespace-nowrap">
-                         Add to cart
-                       </button>
-                    </div>
-                  </div>
-                  
-                  {/* Thông tin sản phẩm */}
-                  <div className="p-5">
-                    {/* Tên SP - Truyền search param vào link để nút quay lại ở Detail hoạt động */}
-                    <h4 className="font-medium text-dark text-sm mb-2 hover:text-blue transition line-clamp-2 min-h-[2.5rem]">
-                      <Link href={`/blogs/blog-details-with-sidebar/${product.id}${searchQuery ? `?search=${encodeURIComponent(searchQuery)}` : ""}`}>
-                        {product.name}
-                      </Link>
-                    </h4>
-                    
-                    {/* Rating (Hiển thị 0 sao như hình bạn gửi) */}
-                    <div className="flex items-center gap-0.5 mb-3">
-                      {[...Array(5)].map((_, i) => (
-                        <svg key={i} className="w-3.5 h-3.5 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                        </svg>
-                      ))}
-                    </div>
-
-                    <div className="flex justify-between items-center">
-                      <span className="text-blue font-bold text-lg">
-                        ${product.price}
-                      </span>
-                      <span
-                        className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-                          totalStock > 20
-                            ? "bg-green-100 text-green-600"
-                            : totalStock > 0
-                            ? "bg-yellow-100 text-yellow-600"
-                            : "bg-red-100 text-red-600"
-                        }`}
-                      >
-                        Còn: {totalStock}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-        {lastPage > 1 && (
-          <div className="flex justify-center items-center gap-2 mt-10">
-            <button
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage <= 1}
-              className="px-4 py-2 rounded-md border border-gray-3 text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white transition"
-            >
-              ← Trước
+      <section className="overflow-hidden py-20 bg-gray-2">
+        <div className="max-w-[1170px] w-full mx-auto px-4 sm:px-8 xl:px-0">
+          
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+            {/* ✅ Nút quay lại thông minh */}
+            <button onClick={handleGoBack} className="text-dark hover:text-blue transition flex items-center gap-2">
+              ← {searchQuery ? `Quay lại kết quả: "${searchQuery}"` : "Quay lại danh sách"}
             </button>
             
-            {Array.from({ length: lastPage }, (_, i) => i + 1).map((p) => (
-              <button
-                key={p}
-                onClick={() => setCurrentPage(p)}
-                className={`px-3.5 py-2 rounded-md text-sm font-medium transition ${
-                  p === currentPage
-                    ? "bg-blue text-white"
-                    : "border border-gray-3 hover:bg-white"
-                }`}
-              >
-                {p}
-              </button>
-            ))}
-
-            <button
-              onClick={() => setCurrentPage((p) => Math.min(lastPage, p + 1))}
-              disabled={currentPage >= lastPage}
-              className="px-4 py-2 rounded-md border border-gray-3 text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white transition"
-            >
-              Sau →
-            </button>
+            <div className="flex items-center gap-3">
+              {!isEditing ? (
+                <button onClick={handleEditClick} className="bg-blue text-white py-2 px-5 rounded-md hover:bg-opacity-90 transition">
+                   Chỉnh sửa thông tin SP
+                </button>
+              ) : (
+                <button onClick={() => setIsEditing(false)} className="bg-gray-2 text-dark py-2 px-5 rounded-md hover:bg-gray-3 transition">
+                  Hủy bỏ
+                </button>
+              )}
+            </div>
           </div>
-        )}
-      </div>
-    </section>
-  );
-};
 
-// ─── Export bọc Suspense ───
-const ShopWithoutSidebar = () => {
-  return (
-    <Suspense
-      fallback={
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="w-10 h-10 border-4 border-blue border-t-transparent rounded-full animate-spin" />
+          {/* ✅ Thông báo ngữ cảnh tìm kiếm (nếu có) */}
+          {searchQuery && (
+            <div className="mb-6 bg-blue/5 border border-blue/20 rounded-xl p-4 flex items-center gap-3">
+              <svg className="w-5 h-5 text-blue flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <p className="text-sm text-dark">
+                Bạn đang xem sản phẩm từ kết quả tìm kiếm cho từ khóa: 
+                <span className="font-semibold text-blue"> &ldquo;{searchQuery}&rdquo;</span>
+              </p>
+            </div>
+          )}
+
+          <div className="flex flex-col lg:flex-row gap-7.5">
+            {/* ── Cột trái: Ảnh & Mô tả ── */}
+            <div className="lg:max-w-[500px] w-full">
+              <div className="bg-white rounded-xl shadow-1 overflow-hidden">
+                <div className="relative w-full h-[400px]">
+                  <Image src={product.thumbnail || "/images/products/default.jpg"} alt={product.name} layout="fill" objectFit="cover" />
+                </div>
+              </div>
+              <div className="bg-white rounded-xl shadow-1 p-6 mt-7.5">
+                <h3 className="text-lg font-semibold text-dark mb-3">Mô tả sản phẩm</h3>
+                {isEditing ? (
+                  <textarea name="description" value={editFormData.description || ""} onChange={(e) => setEditFormData({...editFormData, description: e.target.value})} rows={5} className="w-full border border-gray-3 rounded-md px-4 py-2.5 text-sm focus:outline-none focus:border-blue resize-none"/>
+                ) : (
+                  <p className="text-gray-500 text-sm leading-relaxed">{product.description || "Chưa có mô tả."}</p>
+                )}
+              </div>
+            </div>
+
+            {/* ── Cột phải: Thông tin & Tồn kho ── */}
+            <div className="flex-1">
+              <form onSubmit={handleSaveProduct} className="bg-white rounded-xl shadow-1 p-6">
+                {isEditing ? (
+                  <div className="flex flex-col gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-dark mb-1.5">Tên sản phẩm</label>
+                      <input type="text" name="name" value={editFormData.name || ""} onChange={(e) => setEditFormData({...editFormData, name: e.target.value})} required className="w-full border border-gray-3 rounded-md px-4 py-2.5 text-lg font-bold focus:outline-none focus:border-blue"/>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-dark mb-1.5">Giá bán ($)</label>
+                        <input type="number" name="price" value={editFormData.price || 0} onChange={(e) => setEditFormData({...editFormData, price: Number(e.target.value)})} min="0" className="w-full border border-gray-3 rounded-md px-4 py-2.5 text-sm focus:outline-none focus:border-blue"/>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-dark mb-1.5">Đơn vị</label>
+                        <input type="text" name="unit" value={editFormData.unit || ""} onChange={(e) => setEditFormData({...editFormData, unit: e.target.value})} className="w-full border border-gray-3 rounded-md px-4 py-2.5 text-sm focus:outline-none focus:border-blue"/>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-dark mb-1.5">Xuất xứ</label>
+                      <input type="text" name="origin" value={editFormData.origin || ""} onChange={(e) => setEditFormData({...editFormData, origin: e.target.value})} className="w-full border border-gray-3 rounded-md px-4 py-2.5 text-sm focus:outline-none focus:border-blue"/>
+                    </div>
+                    <button type="submit" disabled={savingProduct} className="mt-2 w-full bg-blue text-white py-2.5 rounded-md hover:bg-opacity-90 disabled:opacity-50 transition">
+                      {savingProduct ? "Đang lưu..." : "Lưu thay đổi thông tin"}
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <h2 className="text-2xl font-bold text-dark mb-4">{product.name}</h2>
+                    <div className="grid grid-cols-2 gap-y-4 gap-x-6 mb-6">
+                      <div>
+                        <p className="text-sm text-gray-400">Giá bán</p>
+                        <p className="text-xl font-bold text-blue">${product.price}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-400">Đơn vị</p>
+                        <p className="text-base font-medium text-dark">{product.unit}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-400">Xuất xứ</p>
+                        <p className="text-base font-medium text-dark">{product.origin || "—"}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-400">Tổng tồn kho</p>
+                        <span className={`inline-block mt-1 px-3 py-1 rounded-full text-sm font-medium ${totalStock > 20 ? "bg-green-100 text-green-600" : totalStock > 0 ? "bg-yellow-100 text-yellow-600" : "bg-red-100 text-red-600"}`}>
+                          {totalStock} {product.unit}
+                        </span>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </form>
+
+              {/* BẢNG TỒN KHO */}
+              <div className="bg-white rounded-xl shadow-1 p-6 mt-7.5">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold text-dark">Chi tiết tồn kho theo kho</h3>
+                  {editingInvId !== "new" && (
+                    <button onClick={handleAddNewInv} className="text-sm bg-gray-2 text-dark py-1.5 px-3 rounded-md hover:bg-gray-3">
+                      + Thêm vào kho
+                    </button>
+                  )}
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-gray-3">
+                        <th className="pb-3 text-sm font-semibold text-dark">Kho hàng</th>
+                        <th className="pb-3 text-sm font-semibold text-dark">Địa chỉ</th>
+                        <th className="pb-3 text-sm font-semibold text-dark text-right">Số lượng</th>
+                        <th className="pb-3 text-sm font-semibold text-dark text-right">Hành động</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {editingInvId === "new" && (
+                        <tr className="border-b border-gray-3 bg-blue/5">
+                          <td className="py-3 pr-2">
+                            <select
+                              value={editInvData.warehouseId}
+                              onChange={(e) => setEditInvData({ ...editInvData, warehouseId: e.target.value })}
+                              className="w-full border border-gray-3 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-blue bg-white"
+                            >
+                              <option value="">-- Chọn kho --</option>
+                              {warehouses.map((wh) => (
+                                <option key={wh.id} value={wh.id}>{wh.name}</option>
+                              ))}
+                            </select>
+                          </td>
+                          <td className="py-3 text-sm text-gray-400 italic">Kho mới</td>
+                          <td className="py-3 pr-2">
+                            <input
+                              type="number"
+                              min="0"
+                              value={editInvData.quantity}
+                              onChange={(e) => setEditInvData({ ...editInvData, quantity: Number(e.target.value) })}
+                              className="w-full border border-gray-3 rounded px-2 py-1.5 text-sm text-right focus:outline-none focus:border-blue"
+                            />
+                          </td>
+                          <td className="py-3 text-right space-x-2">
+                            <button onClick={handleSaveInv} disabled={savingInv} className="text-white bg-blue px-2 py-1 rounded text-xs hover:bg-opacity-90 disabled:opacity-50">
+                              {savingInv ? "..." : "Lưu"}
+                            </button>
+                            <button onClick={handleCancelInv} className="text-gray-500 hover:text-red-500 px-2 py-1 text-xs">
+                              Hủy
+                            </button>
+                          </td>
+                        </tr>
+                      )}
+
+                      {inventories.length === 0 && editingInvId !== "new" ? (
+                        <tr>
+                          <td colSpan={4} className="py-8 text-center text-gray-400 border border-dashed border-gray-3 rounded-lg">
+                            Chưa có dữ liệu tồn kho.
+                          </td>
+                        </tr>
+                      ) : (
+                        inventories.map((inv) => (
+                          <tr key={inv.id} className="border-b border-gray-3 last:border-0">
+                            {editingInvId === inv.id ? (
+                              <>
+                                <td className="py-3 pr-2">
+                                  <select
+                                    value={editInvData.warehouseId}
+                                    onChange={(e) => setEditInvData({ ...editInvData, warehouseId: e.target.value })}
+                                    className="w-full border border-gray-3 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-blue bg-white"
+                                  >
+                                    <option value="">-- Chọn kho --</option>
+                                    {warehouses.map((wh) => (
+                                      <option key={wh.id} value={wh.id}>{wh.name}</option>
+                                    ))}
+                                  </select>
+                                </td>
+                                <td className="py-3 text-sm text-gray-500 truncate max-w-[150px]">
+                                  {getWarehouseAddress(editInvData.warehouseId)}
+                                </td>
+                                <td className="py-3 pr-2">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    value={editInvData.quantity}
+                                    onChange={(e) => setEditInvData({ ...editInvData, quantity: Number(e.target.value) })}
+                                    className="w-full border border-gray-3 rounded px-2 py-1.5 text-sm text-right focus:outline-none focus:border-blue"
+                                  />
+                                </td>
+                                <td className="py-3 text-right space-x-2">
+                                  <button onClick={handleSaveInv} disabled={savingInv} className="text-white bg-blue px-2 py-1 rounded text-xs hover:bg-opacity-90 disabled:opacity-50">
+                                    {savingInv ? "..." : "Lưu"}
+                                  </button>
+                                  <button onClick={handleCancelInv} className="text-gray-500 hover:text-red-500 px-2 py-1 text-xs">
+                                    Hủy
+                                  </button>
+                                </td>
+                              </>
+                            ) : (
+                              <>
+                                <td className="py-3 text-sm text-dark">{getWarehouseName(inv.warehouseId)}</td>
+                                <td className="py-3 text-sm text-gray-500 max-w-[200px] truncate">{getWarehouseAddress(inv.warehouseId)}</td>
+                                <td className="py-3 text-sm text-dark font-medium text-right">{inv.quantity} {product.unit}</td>
+                                <td className="py-3 text-right">
+                                  <button onClick={() => handleEditInv(inv)} className="text-gray-400 hover:text-blue text-sm">
+                                     Sửa
+                                  </button>
+                                </td>
+                              </>
+                            )}
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+            </div>
+          </div>
         </div>
-      }
-    >
-      <ShopContent />
-    </Suspense>
+      </section>
+    </>
   );
 };
 
-export default ShopWithoutSidebar;
+export default ProductDetailPage;
